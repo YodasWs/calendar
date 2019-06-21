@@ -1,0 +1,21 @@
+{
+  "name": "calendar",
+  "private": true,
+  "version": "1.0.0",
+  "description": "3D graphics!",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/YodasWs/calendar.git"
+  },
+  "author": "Sam Grundman",
+  "bugs": {
+    "url": "https://github.com/YodasWs/calendar/issues"
+  },
+  "homepage": "https://github.com/YodasWs/calendar#readme",
+  "dependencies": {
+    "gulp": "github:gulpjs/gulp#4.0",
+    "gulp-load-plugins": "^1.6.0",
+    "gulp-webserver": "^0.9.1",
+    "yargs": "^13.2.4"
+  }
+}

@@ -1,0 +1,33 @@
+:root {
+	font-family: "Trebuchet MS", "Open MS", sans-serif;
+}
+
+h1 {
+	text-align: center;
+}
+
+canvas {
+	display: block;
+	margin: 0 auto;
+	border: 1px solid black;
+}
+
+form {
+	display: flex;
+	flex-flow: column nowrap;
+	align-content: center;
+	align-items: center;
+}
+form > label {
+	display: block;
+}
+
+input[type="range"] {
+	width: 50vw;
+}
+output {
+	display: inline-block;
+	vertical-align: top;
+	text-align: right;
+	min-width: 3em;
+}
