@@ -54,6 +54,15 @@ const Matrix = (function() {
 				console.log('Error! Matrices must be same size!');
 				return;
 			}
+
+			if (!(m1[0] instanceof Array)) {
+				const sum = m1.slice(0);
+				sum.forEach((c, i) => {
+					sum[i] += m2[i];
+				});
+				return sum;
+			}
+
 			const sum = m1.slice(0);
 			sum.forEach((row, i) => {
 				row.forEach((cell, j) => {
@@ -123,6 +132,8 @@ const Matrix = (function() {
 		create,
 		isometric,
 		axonometric,
+		form2dCol,
+		form2dRow,
 
 		projection(point) {
 			const S = 1 / this.camera[z];
@@ -137,9 +148,9 @@ const Matrix = (function() {
 				),
 			);
 			return [
-				d[x] * S + this.camera[x] + 640 / 2,
-				d[y] * S + this.camera[y] + 480 / 2,
-				d[z] * S + this.camera[z],
+				[d[x] * S + this.camera[x] + 640 / 2],
+				[d[y] * S + this.camera[y] + 480 / 2],
+				[d[z] * S + this.camera[z]],
 			];
 		}
 	};
@@ -155,27 +166,55 @@ const gfx = (function() {
 	const shapes = [];
 
 	function Shape(fillStyle) {
-		this.points = [];
 		this.fillStyle = fillStyle;
 		this.strokeStyle = 'black';
 		this.lineJoin = 'round';
 		this.lineCap = 'round';
 		this.lineWidth = 10;
+		this.rotation = matrix.identity(3);
+		this.translation = matrix.create(3, 1);
+		this.points = [];
 	}
 
 	Shape.prototype = {
+		rotate(yaw, pitch, roll) {
+			yaw *= Math.PI / 180;
+			pitch *= Math.PI / 180;
+			roll *= Math.PI / 180;
+			const x = [
+				[1, 0, 0],
+				[0, Math.cos(roll), Math.sin(roll)],
+				[0, -Math.sin(roll), Math.cos(roll)],
+			];
+			const y = [
+				[Math.cos(pitch), 0, Math.sin(pitch)],
+				[0, 1, 0],
+				[-Math.sin(pitch), 0, Math.cos(pitch)],
+			];
+			const z = [
+				[Math.cos(yaw), Math.sin(yaw), 0],
+				[-Math.sin(yaw), Math.cos(yaw), 0],
+				[0, 0, 1],
+			];
+			this.rotation = matrix.multiply(
+				matrix.multiply(z, y),
+				x,
+			);
+		},
+
+		translate(x, y, z) {
+			this.translation = [x, y, z];
+		},
 	};
 
-	let zIdx = 0;
 	function Square(x, y, width, height, color) {
 		Shape.call(this, color);
 		this.points = [
-			[x, y, 50 * zIdx],
-			[x, y + height, 50 * zIdx],
-			[x + height, y + height, 50 * zIdx],
-			[x + height, y, 50 * zIdx],
+			[x, y, 0],
+			[x, y + height, 0],
+			[x + height, y + height, 0],
+			[x + height, y, 0],
 		];
-		zIdx++;
 	}
 	Square.prototype = {
 		...Shape.prototype,
@@ -207,7 +246,15 @@ const gfx = (function() {
 				const points = [];
 				let z = -Infinity;
 				face.points.forEach((point) => {
-					point = matrix.projection(point);
+					point = matrix.projection(
+						matrix.multiply(
+							face.rotation,
+							matrix.form2dCol(matrix.add(
+								point,
+								face.translation,
+							)),
+						),
+					);
 					z = Math.max(z, point[2]);
 					points.push(point);
 				});
@@ -223,14 +270,15 @@ const gfx = (function() {
 
 			// Draw Shapes
 			renderShapes.forEach((shape, i) => {
-				console.log(shapes[shape.idx]);
+				const obj = shapes[shape.idx];
+				console.log(obj);
 				[
 					'strokeStyle',
 					'fillStyle',
 					'lineWidth',
 					'lineJoin',
 					'lineCap',
-				].forEach(a => ctx[a] = shapes[shape.idx][a]);
+				].forEach(a => ctx[a] = obj[a]);
 				ctx.beginPath();
 				shape.points.forEach((point, i) => {
 					ctx[i === 0 ? 'moveTo' : 'lineTo'](...point);
@@ -278,6 +326,15 @@ const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(
 	200,
 	colors[i],
 ));
+cube.forEach((face, i) => {
+	const theta = new Array(3).fill(0);
+	theta[i % 3] = 90;
+	face.rotate(...theta);
+
+	const translation = new Array(3).fill(0);
+	translation[2] = (-1) ** (i % 2) * 100;
+	face.translate(...translation);
+});
 
 gfx.addShapes(...cube);
 
