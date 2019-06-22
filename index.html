@@ -12,7 +12,104 @@
 	<h2>Camera</h2>
 	<label><input id="x" type="range" min="-100" max="100" value="0"/><output>0</output></label>
 	<label><input id="y" type="range" min="-100" max="100" value="0"/><output>0</output></label>
-	<label><input id="z" type="range" min="0" max="100" value="0"/><output>0</output></label>
+	<label><input id="z" type="range" min="1" max="100" value="1"/><output>0</output></label>
 </form>
+<script>
+const ctx = document.querySelector('canvas').getContext('2d');
+
+function showNumbers(e) {
+	e.target.closest('label').querySelector('output').innerText = e.target.value;
+}
+document.querySelectorAll('input[type="range"]').forEach((input) => {
+	input.addEventListener('input', showNumbers);
+});
+
+const Matrix = (function() {
+	function Matrix(camera = [0, 0, 1]) {
+		this.camera = camera;
+	}
+	const create = (n, m) => new Array(n).fill(0).map(r => new Array(m).fill(0));
+
+	const basicOperations = {
+		identity(n) {
+			const iden = create(n, n);
+			iden.forEach((r, i) => r[i] = 1);
+			return iden;
+		},
+
+		transpose(m) {
+			const t = create(m[0].length, m.length);
+			m.forEach((r, i) => {
+				r.forEach((c, j) => {
+					t[j][i] = c;
+				});
+			});
+			return t;
+		},
+
+		add(m1, m2) {
+			if (m1.length !== m2.length || m1[0].length !== m2[0].length) {
+				console.log('Error! Matrices must be same size!');
+				return;
+			}
+			const sum = m1.slice(0);
+			sum.forEach((row, i) => {
+				row.forEach((cell, j) => {
+					cell += m2[i][j];
+				});
+			});
+			return sum;
+		},
+
+		multiply(m1, m2) {
+			// Scalar multiplication
+			if (typeof m2 === 'number')
+				return m1.map(r => r.map(c => c * m2));
+
+			if (m1[0].length !== m2.length) {
+				console.log('Error! Matrices are incorrect size!');
+				return;
+			}
+
+			// TODO: Use Cardovian multiplication for vector
+			if (m2[0].length === 1) {
+			}
+
+			const product = create(m1.length, m2[0].length);
+			m1.forEach((row, i) => {
+				m2[i].forEach((a, j) => {
+					product[i][j] = m1[i].reduce((sum, c, k) => sum + c * m2[k][i], 0);
+				});
+			});
+			return product;
+		},
+	};
+
+	Matrix.prototype = {
+		...Matrix.prototype,
+		...basicOperations,
+		create,
+	};
+
+	return Matrix;
+})();
+const matrix = new Matrix();
+
+const m = matrix.multiply(
+	[
+		[1, 2, 3],
+		[1, 2, 3],
+		[1, 2, 3],
+	],
+	[
+		[1, 2],
+		[2, 3],
+		[4, 5],
+	],
+);
+
+console.log(m);
+console.log(matrix.transpose(m));
+</script>
 </body>
 </html>
