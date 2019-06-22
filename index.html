@@ -111,7 +111,6 @@ const Matrix = (function() {
 
 	const axonometric = (...theta) => {
 		theta = theta.map(a => a * Math.PI / 180);
-		console.log('theta:', theta);
 		const X = [
 			[1, 0, 0],
 			[0, Math.cos(theta[x]), Math.sin(theta[x])],
@@ -225,16 +224,35 @@ ctx.lineCap = 'round';
 function draw() {
 	ctx.clearRect(0, 0, 640, 480);
 	ctx.strokeStyle = 'black';
+	const shapes = [];
 
+	// Convert cube into points
 	cube.forEach((face, i) => {
-		ctx.fillStyle = colors[i];
-		ctx.beginPath();
+		const points = [];
+		let z = -Infinity;
 		face.forEach((point, i) => {
 			point = matrix.projection(point);
+			z = Math.max(z, point[2]);
+			points.push(point);
+		});
+		shapes.push({
+			color: colors[i],
+			points,
+			z,
+		});
+	});
+
+	// Sort
+	shapes.sort((a, b) => a.z - b.z);
+
+	// Draw Shapes
+	shapes.forEach((shape, i) => {
+		ctx.fillStyle = shape.color;
+		ctx.beginPath();
+		shape.points.forEach((point, i) => {
 			ctx[i === 0 ? 'moveTo' : 'lineTo'](...point);
 		});
 		ctx.closePath();
-
 		ctx.fill();
 		ctx.stroke();
 	});
