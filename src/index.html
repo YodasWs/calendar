@@ -154,48 +154,40 @@ const gfx = (function() {
 	const renderShapes = [];
 	const shapes = [];
 
-	function Shape(color) {
-		this.color = color;
+	function Shape(fillStyle) {
 		this.points = [];
+		this.fillStyle = fillStyle;
+		this.strokeStyle = 'black';
+		this.lineJoin = 'round';
+		this.lineCap = 'round';
+		this.lineWidth = 10;
 	}
 
 	Shape.prototype = {
-		render() {
-			const points = [];
-			let z = -Infinity;
-			this.points.forEach((point, i) => {
-				point = matrix.projection(point);
-				z = Math.max(z, point[2]);
-				points.push(point);
-			});
-		},
-
-		draw() {
-			ctx.lineWidth = 10;
-			ctx.lineJoin = 'round';
-			ctx.lineCap = 'round';
-		},
 	};
 
+	let zIdx = 0;
 	function Square(x, y, width, height, color) {
 		Shape.call(this, color);
 		this.points = [
-			[x, y, 0],
-			[x, y + height, 0],
-			[x + height, y + height, 0],
-			[x + height, y, 0],
+			[x, y, 50 * zIdx],
+			[x, y + height, 50 * zIdx],
+			[x + height, y + height, 50 * zIdx],
+			[x + height, y, 50 * zIdx],
 		];
+		zIdx++;
 	}
 	Square.prototype = {
 		...Shape.prototype,
-		...Square.prototype,
+		constructor: Square,
 	};
 
 	function Circle() {
+		Shape.call(this);
 	}
 	Circle.prototype = {
 		...Shape.prototype,
-		...Circle.prototype,
+		constructor: Circle,
 	};
 
 	return {
@@ -208,21 +200,19 @@ const gfx = (function() {
 
 		draw() {
 			ctx.clearRect(0, 0, 640, 480);
-			ctx.strokeStyle = 'black';
 			renderShapes.splice(0);
 
-			// Convert cube into points
+			// Convert shapes into 2D points
 			shapes.forEach((face, i) => {
-				face.render();
 				const points = [];
 				let z = -Infinity;
-				face.points.forEach((point, i) => {
+				face.points.forEach((point) => {
 					point = matrix.projection(point);
 					z = Math.max(z, point[2]);
 					points.push(point);
 				});
 				renderShapes.push({
-					color: colors[i],
+					idx: i,
 					points,
 					z,
 				});
@@ -233,7 +223,14 @@ const gfx = (function() {
 
 			// Draw Shapes
 			renderShapes.forEach((shape, i) => {
-				ctx.fillStyle = shape.color;
+				console.log(shapes[shape.idx]);
+				[
+					'strokeStyle',
+					'fillStyle',
+					'lineWidth',
+					'lineJoin',
+					'lineCap',
+				].forEach(a => ctx[a] = shapes[shape.idx][a]);
 				ctx.beginPath();
 				shape.points.forEach((point, i) => {
 					ctx[i === 0 ? 'moveTo' : 'lineTo'](...point);
