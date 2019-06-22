@@ -3,7 +3,12 @@
 }
 
 h1 {
+	margin: 0;
 	text-align: center;
+}
+
+h2 {
+	margin-bottom: 0;
 }
 
 canvas {
@@ -31,3 +36,7 @@ output {
 	text-align: right;
 	min-width: 3em;
 }
+
+/*
+ * vim: syntax=scss
+ */

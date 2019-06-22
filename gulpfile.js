@@ -6,13 +6,12 @@ const packageJson = JSON.parse(fs.readFileSync('./package.json'))
 const argv = require('yargs')
 	.command(['serve', '*'], 'Compile files and start server', {
 		port: {
-			describe: 'The server port to listen to',
+			describe: 'server port',
 			type: 'number',
 			default: 3000,
 			alias: 'p'
 		}
 	})
-	.command('watch', 'Watch files for changes to recompile')
 	.epilog(' ©2019 Samuel B Grundman')
 	.help('?')
 	.argv;
@@ -23,6 +22,7 @@ const plugins = require('gulp-load-plugins')({
 });
 
 const options = {
+	dest: 'docs',
 	webserver: {
 		path: `/${packageJson.name}/`,
 		directoryListing: false,
@@ -34,7 +34,7 @@ const options = {
 };
 
 gulp.task('serve', () => {
-	return gulp.src('.')
+	return gulp.src(options.dest)
 		.pipe(plugins.webserver(options.webserver));
 });
 
