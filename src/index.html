@@ -172,7 +172,7 @@ const gfx = (function() {
 		this.lineCap = 'round';
 		this.lineWidth = 10;
 		this.rotation = matrix.identity(3);
-		this.translation = matrix.create(3, 1);
+		this.translation = new Array(3).fill(0);
 		this.points = [];
 	}
 
@@ -221,8 +221,16 @@ const gfx = (function() {
 		constructor: Square,
 	};
 
-	function Circle() {
-		Shape.call(this);
+	function Circle(r, color) {
+		Shape.call(this, color);
+		this.points = [];
+		for (let θ=0; θ<360; θ+=360/80) {
+			this.points.push([
+				r * Math.cos(θ * Math.PI / 180),
+				r * Math.sin(θ * Math.PI / 180),
+				0,
+			]);
+		}
 	}
 	Circle.prototype = {
 		...Shape.prototype,
@@ -271,7 +279,6 @@ const gfx = (function() {
 			// Draw Shapes
 			renderShapes.forEach((shape, i) => {
 				const obj = shapes[shape.idx];
-				console.log(obj);
 				[
 					'strokeStyle',
 					'fillStyle',
@@ -335,8 +342,9 @@ cube.forEach((face, i) => {
 	translation[2] = (-1) ** (i % 2) * 100;
 	face.translate(...translation);
 });
+const halo = new gfx.Circle(250, 'transparent');
 
-gfx.addShapes(...cube);
+gfx.addShapes(...cube, halo);
 
 gfx.draw();
 
