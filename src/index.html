@@ -19,27 +19,6 @@
 	<label><input id="radz" type="range" min="-180" max="180" value="0"/><output>0</output></label>
 </form>
 <script>
-const ctx = document.querySelector('canvas').getContext('2d');
-
-function setCamera() {
-	matrix.camera = [
-		Number.parseInt(document.getElementById('x').value, 10),
-		Number.parseInt(document.getElementById('y').value, 10),
-		Number.parseInt(document.getElementById('z').value, 10),
-	];
-};
-document.getElementById('x').addEventListener('input', setCamera);
-document.getElementById('y').addEventListener('input', setCamera);
-document.getElementById('z').addEventListener('input', setCamera);
-
-function showNumbers(e) {
-	e.target.closest('label').querySelector('output').innerText = e.target.value;
-}
-document.querySelectorAll('input[type="range"]').forEach((input) => {
-	input.addEventListener('input', showNumbers);
-	input.addEventListener('input', draw);
-});
-
 const Matrix = (function() {
 	const form2dCol = v => v.map(p => [p]);
 	const form2dRow = v => [v];
@@ -169,44 +148,122 @@ const Matrix = (function() {
 })();
 const matrix = new Matrix();
 
-const cube = [
-	[
-		[-100,  100, 100],
-		[-100, -100, 100],
-		[ 100, -100, 100],
-		[ 100,  100, 100],
-	],
-	[
-		[-100,  100, -100],
-		[-100, -100, -100],
-		[ 100, -100, -100],
-		[ 100,  100, -100],
-	],
-	[
-		[-100, 100,  100],
-		[-100, 100, -100],
-		[ 100, 100, -100],
-		[ 100, 100,  100],
-	],
-	[
-		[-100, -100,  100],
-		[-100, -100, -100],
-		[ 100, -100, -100],
-		[ 100, -100,  100],
-	],
-	[
-		[100, -100,  100],
-		[100, -100, -100],
-		[100,  100, -100],
-		[100,  100,  100],
-	],
-	[
-		[-100, -100,  100],
-		[-100, -100, -100],
-		[-100,  100, -100],
-		[-100,  100,  100],
-	],
-];
+const gfx = (function() {
+	const ctx = document.querySelector('canvas').getContext('2d');
+
+	const renderShapes = [];
+	const shapes = [];
+
+	function Shape(color) {
+		this.color = color;
+		this.points = [];
+	}
+
+	Shape.prototype = {
+		render() {
+			const points = [];
+			let z = -Infinity;
+			this.points.forEach((point, i) => {
+				point = matrix.projection(point);
+				z = Math.max(z, point[2]);
+				points.push(point);
+			});
+		},
+
+		draw() {
+			ctx.lineWidth = 10;
+			ctx.lineJoin = 'round';
+			ctx.lineCap = 'round';
+		},
+	};
+
+	function Square(x, y, width, height, color) {
+		Shape.call(this, color);
+		this.points = [
+			[x, y, 0],
+			[x, y + height, 0],
+			[x + height, y + height, 0],
+			[x + height, y, 0],
+		];
+	}
+	Square.prototype = {
+		...Shape.prototype,
+		...Square.prototype,
+	};
+
+	function Circle() {
+	}
+	Circle.prototype = {
+		...Shape.prototype,
+		...Circle.prototype,
+	};
+
+	return {
+		Circle,
+		Square,
+
+		addShapes(...shape) {
+			shapes.push(...shape)
+		},
+
+		draw() {
+			ctx.clearRect(0, 0, 640, 480);
+			ctx.strokeStyle = 'black';
+			renderShapes.splice(0);
+
+			// Convert cube into points
+			shapes.forEach((face, i) => {
+				face.render();
+				const points = [];
+				let z = -Infinity;
+				face.points.forEach((point, i) => {
+					point = matrix.projection(point);
+					z = Math.max(z, point[2]);
+					points.push(point);
+				});
+				renderShapes.push({
+					color: colors[i],
+					points,
+					z,
+				});
+			});
+
+			// Sort
+			renderShapes.sort((a, b) => a.z - b.z);
+
+			// Draw Shapes
+			renderShapes.forEach((shape, i) => {
+				ctx.fillStyle = shape.color;
+				ctx.beginPath();
+				shape.points.forEach((point, i) => {
+					ctx[i === 0 ? 'moveTo' : 'lineTo'](...point);
+				});
+				ctx.closePath();
+				ctx.fill();
+				ctx.stroke();
+			});
+		},
+	};
+})();
+
+function setCamera() {
+	matrix.camera = [
+		Number.parseInt(document.getElementById('x').value, 10),
+		Number.parseInt(document.getElementById('y').value, 10),
+		Number.parseInt(document.getElementById('z').value, 10),
+	];
+};
+document.getElementById('x').addEventListener('input', setCamera);
+document.getElementById('y').addEventListener('input', setCamera);
+document.getElementById('z').addEventListener('input', setCamera);
+
+function showNumbers(e) {
+	e.target.closest('label').querySelector('output').innerText = e.target.value;
+}
+document.querySelectorAll('input[type="range"]').forEach((input) => {
+	input.addEventListener('input', showNumbers);
+	input.addEventListener('input', gfx.draw);
+});
 
 const colors = [
 	'#fff0ff',
@@ -217,47 +274,17 @@ const colors = [
 	'#f0fff0',
 ];
 
-ctx.lineWidth = 10;
-ctx.lineJoin = 'round';
-ctx.lineCap = 'round';
+const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(
+	-100,
+	-100,
+	200,
+	200,
+	colors[i],
+));
 
-function draw() {
-	ctx.clearRect(0, 0, 640, 480);
-	ctx.strokeStyle = 'black';
-	const shapes = [];
+gfx.addShapes(...cube);
 
-	// Convert cube into points
-	cube.forEach((face, i) => {
-		const points = [];
-		let z = -Infinity;
-		face.forEach((point, i) => {
-			point = matrix.projection(point);
-			z = Math.max(z, point[2]);
-			points.push(point);
-		});
-		shapes.push({
-			color: colors[i],
-			points,
-			z,
-		});
-	});
-
-	// Sort
-	shapes.sort((a, b) => a.z - b.z);
-
-	// Draw Shapes
-	shapes.forEach((shape, i) => {
-		ctx.fillStyle = shape.color;
-		ctx.beginPath();
-		shape.points.forEach((point, i) => {
-			ctx[i === 0 ? 'moveTo' : 'lineTo'](...point);
-		});
-		ctx.closePath();
-		ctx.fill();
-		ctx.stroke();
-	});
-}
-draw();
+gfx.draw();
 
 </script>
 </body>
