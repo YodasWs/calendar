@@ -10,9 +10,9 @@
 <canvas width="640" height="480"></canvas>
 <form>
 	<h2>Camera</h2>
-	<label><input id="x" type="range" min="-100" max="100" value="0"/><output>0</output></label>
-	<label><input id="y" type="range" min="-100" max="100" value="0"/><output>0</output></label>
-	<label><input id="z" type="range" min="1" max="100" value="1"/><output>0</output></label>
+	<label><input id="x" type="range" min="-320" max="320" value="0"/><output>0</output></label>
+	<label><input id="y" type="range" min="-240" max="240" value="0"/><output>0</output></label>
+	<label><input id="z" type="range" min="1" max="200" value="1"/><output>1</output></label>
 </form>
 <script>
 const ctx = document.querySelector('canvas').getContext('2d');
@@ -23,6 +23,18 @@ function showNumbers(e) {
 document.querySelectorAll('input[type="range"]').forEach((input) => {
 	input.addEventListener('input', showNumbers);
 });
+
+function setCamera() {
+	matrix.camera = [
+		Number.parseInt(document.getElementById('x').value, 10),
+		Number.parseInt(document.getElementById('y').value, 10),
+		Number.parseInt(document.getElementById('z').value, 10),
+	];
+	draw();
+};
+document.getElementById('x').addEventListener('input', setCamera);
+document.getElementById('y').addEventListener('input', setCamera);
+document.getElementById('z').addEventListener('input', setCamera);
 
 const Matrix = (function() {
 	const form2dCol = v => v.map(p => [p]);
@@ -131,16 +143,17 @@ const Matrix = (function() {
 		axonometric,
 
 		projection(point) {
-			const b = basicOperations.flatten(
+			const S = 1 / this.camera[z];
+			const d = basicOperations.flatten(
 				basicOperations.multiply(
 					isometric,
 					form2dCol(point),
 				),
 			);
 			return [
-				b[x] + this.camera[x] + 640 / 2,
-				b[y] + this.camera[y] + 480 / 2,
-				b[z] + this.camera[z],
+				d[x] * S + this.camera[x] + 640 / 2,
+				d[y] * S + this.camera[y] + 480 / 2,
+				d[z] * S + this.camera[z],
 			];
 		}
 	};
