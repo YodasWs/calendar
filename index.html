@@ -75,10 +75,11 @@ const Matrix = (function() {
 			if (m2[0].length === 1) {
 			}
 
+			// Matrix multiplication!
 			const product = create(m1.length, m2[0].length);
 			m1.forEach((row, i) => {
-				m2[i].forEach((a, j) => {
-					product[i][j] = m1[i].reduce((sum, c, k) => sum + c * m2[k][i], 0);
+				m2[0].forEach((a, j) => {
+					product[i][j] = m2.reduce((sum, c, k) => sum + m1[i][k] * m2[k][j], 0);
 				});
 			});
 			return product;
