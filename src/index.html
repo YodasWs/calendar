@@ -1,4 +1,25 @@
-<!doctype html><html lang="en-US"><head><meta charset="utf-8"/><title>3D Graphics!</title><link rel="stylesheet" href="index.css"/></head><body><h1>3D Graphics!</h1><canvas width="640" height="480"></canvas><form><h2>Camera</h2><label><input id="x" type="range" min="-320" max="320" value="0"/><output>0</output></label> <label><input id="y" type="range" min="-240" max="240" value="0"/><output>0</output></label> <label><input id="z" type="range" min="1" max="200" value="1"/><output>1</output></label><h2>Rotation</h2><label><input id="radx" type="range" min="-180" max="180" value="35"/><output>35</output></label> <label><input id="rady" type="range" min="-180" max="180" value="45"/><output>45</output></label> <label><input id="radz" type="range" min="-180" max="180" value="0"/><output>0</output></label></form><script>const ctx = document.querySelector('canvas').getContext('2d');
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+<meta charset="utf-8"/>
+<title>3D Graphics!</title>
+<link rel="stylesheet" href="index.css"/>
+</head>
+<body>
+<h1>3D Graphics!</h1>
+<canvas width="640" height="480"></canvas>
+<form>
+	<h2>Camera</h2>
+	<label><input id="x" type="range" min="-320" max="320" value="0"/><output>0</output></label>
+	<label><input id="y" type="range" min="-240" max="240" value="0"/><output>0</output></label>
+	<label><input id="z" type="range" min="1" max="200" value="1"/><output>1</output></label>
+	<h2>Rotation</h2>
+	<label><input id="radx" type="range" min="-180" max="180" value="35"/><output>35</output></label>
+	<label><input id="rady" type="range" min="-180" max="180" value="45"/><output>45</output></label>
+	<label><input id="radz" type="range" min="-180" max="180" value="0"/><output>0</output></label>
+</form>
+<script>
+const ctx = document.querySelector('canvas').getContext('2d');
 
 function setCamera() {
 	matrix.camera = [
@@ -236,4 +257,8 @@ function draw() {
 		ctx.stroke();
 	});
 }
-draw();</script></body></html>
+draw();
+
+</script>
+</body>
+</html>

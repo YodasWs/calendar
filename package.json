@@ -14,7 +14,9 @@
   "homepage": "https://github.com/YodasWs/calendar#readme",
   "dependencies": {
     "gulp": "github:gulpjs/gulp#4.0",
+    "gulp-htmlmin": "^5.0.1",
     "gulp-load-plugins": "^1.6.0",
+    "gulp-sass": "^4.0.2",
     "gulp-webserver": "^0.9.1",
     "yargs": "^13.2.4"
   }
