@@ -13,16 +13,13 @@
 	<label><input id="x" type="range" min="-320" max="320" value="0"/><output>0</output></label>
 	<label><input id="y" type="range" min="-240" max="240" value="0"/><output>0</output></label>
 	<label><input id="z" type="range" min="1" max="200" value="1"/><output>1</output></label>
+	<h2>Rotation</h2>
+	<label><input id="radx" type="range" min="-180" max="180" value="35"/><output>35</output></label>
+	<label><input id="rady" type="range" min="-180" max="180" value="45"/><output>45</output></label>
+	<label><input id="radz" type="range" min="-180" max="180" value="0"/><output>0</output></label>
 </form>
 <script>
 const ctx = document.querySelector('canvas').getContext('2d');
-
-function showNumbers(e) {
-	e.target.closest('label').querySelector('output').innerText = e.target.value;
-}
-document.querySelectorAll('input[type="range"]').forEach((input) => {
-	input.addEventListener('input', showNumbers);
-});
 
 function setCamera() {
 	matrix.camera = [
@@ -30,11 +27,18 @@ function setCamera() {
 		Number.parseInt(document.getElementById('y').value, 10),
 		Number.parseInt(document.getElementById('z').value, 10),
 	];
-	draw();
 };
 document.getElementById('x').addEventListener('input', setCamera);
 document.getElementById('y').addEventListener('input', setCamera);
 document.getElementById('z').addEventListener('input', setCamera);
+
+function showNumbers(e) {
+	e.target.closest('label').querySelector('output').innerText = e.target.value;
+}
+document.querySelectorAll('input[type="range"]').forEach((input) => {
+	input.addEventListener('input', showNumbers);
+	input.addEventListener('input', draw);
+});
 
 const Matrix = (function() {
 	const form2dCol = v => v.map(p => [p]);
@@ -146,7 +150,11 @@ const Matrix = (function() {
 			const S = 1 / this.camera[z];
 			const d = basicOperations.flatten(
 				basicOperations.multiply(
-					isometric,
+					axonometric(
+						Number.parseInt(document.getElementById('radx').value, 10),
+						Number.parseInt(document.getElementById('rady').value, 10),
+						Number.parseInt(document.getElementById('radz').value, 10),
+					),
 					form2dCol(point),
 				),
 			);
@@ -162,11 +170,52 @@ const Matrix = (function() {
 })();
 const matrix = new Matrix();
 
-const rect = [
-	[-100, 0,  100],
-	[-100, 0, -100],
-	[ 100, 0, -100],
-	[ 100, 0,  100],
+const cube = [
+	[
+		[-100,  100, 100],
+		[-100, -100, 100],
+		[ 100, -100, 100],
+		[ 100,  100, 100],
+	],
+	[
+		[-100,  100, -100],
+		[-100, -100, -100],
+		[ 100, -100, -100],
+		[ 100,  100, -100],
+	],
+	[
+		[-100, 100,  100],
+		[-100, 100, -100],
+		[ 100, 100, -100],
+		[ 100, 100,  100],
+	],
+	[
+		[-100, -100,  100],
+		[-100, -100, -100],
+		[ 100, -100, -100],
+		[ 100, -100,  100],
+	],
+	[
+		[100, -100,  100],
+		[100, -100, -100],
+		[100,  100, -100],
+		[100,  100,  100],
+	],
+	[
+		[-100, -100,  100],
+		[-100, -100, -100],
+		[-100,  100, -100],
+		[-100,  100,  100],
+	],
+];
+
+const colors = [
+	'#fff0f0',
+	'#f0fff0',
+	'#f0f0ff',
+	'#f0ffff',
+	'#fff0ff',
+	'#fffff0',
 ];
 
 ctx.lineWidth = 10;
@@ -176,17 +225,19 @@ ctx.lineCap = 'round';
 function draw() {
 	ctx.clearRect(0, 0, 640, 480);
 	ctx.strokeStyle = 'black';
-	ctx.fillStyle = 'dimgrey';
 
-	ctx.beginPath();
-	rect.forEach((point, i) => {
-		point = matrix.projection(point);
-		ctx[i === 0 ? 'moveTo' : 'lineTo'](...point);
+	cube.forEach((face, i) => {
+		ctx.fillStyle = colors[i];
+		ctx.beginPath();
+		face.forEach((point, i) => {
+			point = matrix.projection(point);
+			ctx[i === 0 ? 'moveTo' : 'lineTo'](...point);
+		});
+		ctx.closePath();
+
+		ctx.fill();
+		ctx.stroke();
 	});
-	ctx.closePath();
-
-	ctx.fill();
-	ctx.stroke();
 }
 draw();
 
