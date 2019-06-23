@@ -12,7 +12,7 @@
 	<h2>Camera</h2>
 	<label><input id="x" type="range" min="-320" max="320" value="0"/><output>0</output></label>
 	<label><input id="y" type="range" min="-240" max="240" value="0"/><output>0</output></label>
-	<label><input id="z" type="range" min="1" max="200" value="1"/><output>1</output></label>
+	<label><input id="z" type="range" min="1" max="9" value="1"/><output>1</output></label>
 	<h2>Rotation</h2>
 	<label><input id="radx" type="range" min="-180" max="180" value="35"/><output>35</output></label>
 	<label><input id="rady" type="range" min="-180" max="180" value="45"/><output>45</output></label>
@@ -224,6 +224,8 @@ const gfx = (function() {
 	function Circle(r, color) {
 		Shape.call(this, color);
 		this.points = [];
+		this.lineWidth = 1;
+
 		for (let θ=0; θ<360; θ+=360/80) {
 			this.points.push([
 				r * Math.cos(θ * Math.PI / 180),
@@ -282,10 +284,10 @@ const gfx = (function() {
 				[
 					'strokeStyle',
 					'fillStyle',
-					'lineWidth',
 					'lineJoin',
 					'lineCap',
 				].forEach(a => ctx[a] = obj[a]);
+				ctx.lineWidth = Math.max(obj.lineWidth - 2 * matrix.camera[2], 1);
 				ctx.beginPath();
 				shape.points.forEach((point, i) => {
 					ctx[i === 0 ? 'moveTo' : 'lineTo'](...point);
