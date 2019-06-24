@@ -145,7 +145,17 @@ const Matrix = (function() {
 				[d[y] * S + this.camera[y] + 480 / 2],
 				[d[z] * S + this.camera[z]],
 			];
-		}
+		},
+
+		crossProduct(v1, v2) {
+			if (v1[0] instanceof Array) v1 = basicOperations.flatten(v1);
+			if (v2[0] instanceof Array) v2 = basicOperations.flatten(v2);
+			return [
+				v1[y] * v2[z] - v1[z] * v2[y],
+				v1[z] * v2[x] - v1[x] * v2[z],
+				v1[x] * v2[y] - v1[y] * v2[x],
+			];
+		},
 	};
 
 	return Matrix;
@@ -167,9 +177,53 @@ const gfx = (function() {
 		this.rotation = matrix.identity(3);
 		this.translation = new Array(3).fill(0);
 		this.points = [];
+		this.renderedPoints = [];
 	}
 
 	Shape.prototype = {
+		plane() {
+			if (this.points.length === 0) return [];
+			if (this.renderedPoints.length === 0) this.render();
+
+			// Need three non-origin points
+			const v = [];
+			let i = 0;
+			do {
+				if (this.renderedPoints[i] !== [0, 0, 0])
+					v.push(this.renderedPoints[i]);
+			} while (v.length < 3 && ++i < this.renderedPoints.length);
+			if (v.length !== 3) {
+				console.log('Need at least three points to calculate plane!');
+				return [0, 0, 0];
+			}
+
+			const ab = matrix.add(v[0], matrix.multiply(v[1], -1));
+			const ac = matrix.add(v[0], matrix.multiply(v[2], -1));
+			return matrix.crossProduct(ab, ac);
+		},
+
+		render() {
+			this.renderedPoints = [];
+			let z = -Infinity;
+			this.points.forEach((point) => {
+				const p = matrix.projection(
+					matrix.multiply(
+						this.rotation,
+						matrix.form2dCol(matrix.add(
+							point,
+							this.translation,
+						)),
+					),
+				);
+				z = Math.max(z, p[2]);
+				this.renderedPoints.push(p);
+			});
+			return {
+				points: this.renderedPoints,
+				z,
+			};
+		},
+
 		rotate(yaw, pitch, roll) {
 			yaw *= Math.PI / 180;
 			pitch *= Math.PI / 180;
@@ -246,25 +300,9 @@ const gfx = (function() {
 
 			// Convert shapes into 2D points
 			shapes.forEach((face, i) => {
-				const points = [];
-				let z = -Infinity;
-				face.points.forEach((point) => {
-					point = matrix.projection(
-						matrix.multiply(
-							face.rotation,
-							matrix.form2dCol(matrix.add(
-								point,
-								face.translation,
-							)),
-						),
-					);
-					z = Math.max(z, point[2]);
-					points.push(point);
-				});
 				renderShapes.push({
+					...face.render(),
 					idx: i,
-					points,
-					z,
 				});
 			});
 
@@ -341,6 +379,7 @@ const halo = new gfx.Circle(250, 'transparent');
 
 gfx.addShapes(...cube, halo);
 
+console.log('halo plane:', halo.plane());
 gfx.draw();
 
 </script>
