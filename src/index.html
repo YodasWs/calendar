@@ -15,7 +15,7 @@
 	<label><input id="z" type="range" min="1" max="9" value="1"/><output>1</output></label>
 	<h2>Rotation</h2>
 	<label><input id="radx" type="range" min="-180" max="180" value="35"/><output>35</output></label>
-	<label><input id="rady" type="range" min="-180" max="180" value="45"/><output>45</output></label>
+	<label><input id="rady" type="range" min="0" max="360" value="45" disabled/><output>45</output></label>
 	<label><input id="radz" type="range" min="-180" max="180" value="0"/><output>0</output></label>
 </form>
 <script>
@@ -129,7 +129,6 @@ const Matrix = (function() {
 		form2dRow,
 
 		projection(point) {
-			const S = 1 / this.camera[z];
 			const d = basicOperations.flatten(
 				basicOperations.multiply(
 					axonometric(
@@ -141,9 +140,9 @@ const Matrix = (function() {
 				),
 			);
 			return [
-				[d[x] * S + this.camera[x] + 640 / 2],
-				[d[y] * S + this.camera[y] + 480 / 2],
-				[d[z] * S + this.camera[z]],
+				[d[x] / this.camera[z] + this.camera[x]],
+				[d[y] / this.camera[z] + this.camera[y]],
+				[d[z] / this.camera[z] + this.camera[z]],
 			];
 		},
 
@@ -163,7 +162,9 @@ const Matrix = (function() {
 const matrix = new Matrix();
 
 const gfx = (function() {
-	const ctx = document.querySelector('canvas').getContext('2d');
+	const canvas = document.querySelector('canvas');
+	const ctx = canvas.getContext('2d');
+	ctx.translate(canvas.width / 2, canvas.height / 2);
 
 	const renderShapes = [];
 	const shapes = [];
@@ -295,7 +296,7 @@ const gfx = (function() {
 		},
 
 		draw() {
-			ctx.clearRect(0, 0, 640, 480);
+			ctx.clearRect(canvas.width / -2, canvas.height / -2, canvas.width, canvas.height);
 			renderShapes.splice(0);
 
 			// Convert shapes into 2D points
