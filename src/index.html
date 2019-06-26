@@ -230,6 +230,8 @@ const gfx = (function() {
 			});
 			return {
 				points: this.renderedPoints,
+				translation: this.translation,
+				rotation: this.rotation,
 				z,
 			};
 		},
@@ -296,12 +298,24 @@ const gfx = (function() {
 		constructor: Circle,
 	};
 
+	let tick = 0;
+
 	return {
 		Circle,
 		Square,
 
 		addShapes(...shape) {
 			shapes.push(...shape)
+		},
+
+		animate() {
+			const fps = 45;
+			const speed = 1;
+			const inputAngle = document.getElementById('rady');
+			inputAngle.value = (Number.parseInt(inputAngle.value, 10) + speed) % 360;
+			this.draw();
+			setTimeout(this.animate.bind(this), 1000 / fps);
+			tick++;
 		},
 
 		draw() {
@@ -312,12 +326,33 @@ const gfx = (function() {
 			shapes.forEach((face, i) => {
 				renderShapes.push({
 					...face.render(),
+					plane: face.plane(),
 					idx: i,
 				});
 			});
 
+			// Use just this disecting shape to get us started
+			const halo = renderShapes.pop();
+			console.log('halo:', halo);
+
 			// Sort
 			renderShapes.sort((a, b) => a.z - b.z);
+
+			// TODO: Need to find where shapes intersect then disect
+			renderShapes.forEach((shape, i) => {
+				const intersection = matrix.crossProduct(halo.plane, shape.plane);
+				if (Math.hypot(...intersection) === 0) {
+					// Planes are parallel
+					return;
+				}
+				console.log(`Shape ${i} intersects halo!`);
+
+				// Currently, math to determine points in 3D space is done far below, on variable `vectors`
+			});
+
+			renderShapes.push(halo);
+
+			ctx.setLineDash([0]);
 
 			// Draw Shapes
 			renderShapes.forEach((shape, i) => {
@@ -335,6 +370,164 @@ const gfx = (function() {
 				});
 				ctx.closePath();
 				ctx.fill();
+				ctx.stroke();
+			});
+
+			// Dot Origin
+			ctx.lineWidth = 10;
+			ctx.beginPath();
+			ctx.moveTo(0, 0);
+			ctx.lineTo(0, 0);
+			ctx.closePath();
+			ctx.stroke();
+
+			// Important values for animation
+			const vectorLength = 100;
+			const vectorStretchSpeed = 5;
+			const translationSpeed = 30;
+			const timePoints = [
+				0,
+				// Animate Normals
+				vectorLength / vectorStretchSpeed,
+				vectorLength / vectorStretchSpeed + translationSpeed,
+				// Animate Intersection
+				vectorLength / vectorStretchSpeed + translationSpeed + vectorLength / vectorStretchSpeed,
+				vectorLength / vectorStretchSpeed + translationSpeed + vectorLength / vectorStretchSpeed + translationSpeed,
+				vectorLength / vectorStretchSpeed + translationSpeed + vectorLength / vectorStretchSpeed + translationSpeed + translationSpeed,
+			];
+
+			let vectors = [];
+
+			// Animate movement of planes' normal vectors
+			renderShapes.forEach((point, i) => {
+				const h = Math.hypot(...point.plane);
+				let origin = [0, 0, 0];
+				let normal = matrix.multiply(
+					point.plane,
+					Math.min(vectorLength, (tick - timePoints[0]) / (timePoints[1] - timePoints[0]) * vectorLength) / h,
+				);
+
+				if (tick > timePoints[1]) {
+					const translation = matrix.multiply(
+						point.translation,
+						Math.min(1, (tick - timePoints[1]) / translationSpeed),
+					);
+					normal = matrix.multiply(
+						point.rotation,
+						matrix.add(normal, matrix.form2dCol(translation)),
+					);
+					origin = matrix.multiply(
+						point.rotation,
+						matrix.form2dCol(matrix.add(origin, translation)),
+					);
+				}
+
+				origin = matrix.flatten(matrix.projection(origin));
+				normal = matrix.flatten(matrix.projection(normal));
+				console.log('normal:', normal);
+
+				vectors.push([
+					origin,
+					normal,
+				]);
+			});
+
+			// Animate vector of intersection
+			if (tick > timePoints[2]) {
+				// Intersection is cross product of rotated plane normals
+				// We do not translate because we want to use the origin as a point of intersection to simplify the math
+				let intersect = matrix.crossProduct(
+					matrix.multiply(
+						renderShapes[0].rotation,
+						renderShapes[0].plane,
+					),
+					matrix.multiply(
+						halo.rotation,
+						halo.plane,
+					),
+				);
+
+				// Animate extension of vector of intersection
+				const h = Math.hypot(...intersect);
+				intersect = matrix.multiply(
+					intersect,
+					Math.min(vectorLength, (tick - timePoints[2]) / (timePoints[3] - timePoints[2]) * vectorLength) / h,
+				);
+
+				let origin = [0, 0, 0];
+
+				// Animate translation of intersection
+				if (tick > timePoints[3]) {
+					let translation = matrix.multiply(
+						renderShapes[0].translation,
+						Math.min(1, (tick - timePoints[3]) / translationSpeed),
+					);
+
+					// Translate by shape
+					origin = matrix.flatten(matrix.add(
+						matrix.form2dCol(origin),
+						matrix.multiply(
+							renderShapes[0].rotation,
+							matrix.form2dCol(translation),
+						),
+					));
+					intersect = matrix.flatten(matrix.add(
+						matrix.form2dCol(intersect),
+						matrix.multiply(
+							renderShapes[0].rotation,
+							matrix.form2dCol(translation),
+						),
+					));
+
+					// Translate by halo
+					if (tick > timePoints[4]) {
+						translation = matrix.multiply(
+							halo.translation,
+							Math.min(1, (tick - timePoints[4]) / translationSpeed),
+						);
+						origin = matrix.flatten(matrix.add(
+							matrix.form2dCol(origin),
+							matrix.multiply(
+								halo.rotation,
+								matrix.form2dCol(translation),
+							),
+						));
+						intersect = matrix.flatten(matrix.add(
+							matrix.form2dCol(intersect),
+							matrix.multiply(
+								halo.rotation,
+								matrix.form2dCol(translation),
+							),
+						));
+					}
+				}
+				
+				origin = matrix.form2dCol(origin);
+				intersect = matrix.form2dCol(intersect);
+
+				vectors.push([
+					matrix.flatten(matrix.projection(origin)),
+					matrix.flatten(matrix.projection(intersect)),
+				]);
+			}
+
+			// Draw Vectors
+			vectors.forEach((v) => {
+				ctx.strokeStyle = 'black';
+				ctx.lineWidth = 1;
+				ctx.beginPath();
+				ctx.setLineDash([5, 10]);
+				ctx.moveTo(...v[0]);
+				ctx.lineTo(...v[1]);
+				ctx.closePath();
+				ctx.stroke();
+
+				ctx.strokeStyle = 'red';
+				ctx.lineWidth = 7;
+				ctx.beginPath();
+				ctx.moveTo(...v[1]);
+				ctx.lineTo(...v[1]);
+				ctx.closePath();
 				ctx.stroke();
 			});
 		},
@@ -357,7 +550,6 @@ function showNumbers(e) {
 }
 document.querySelectorAll('input[type="range"]').forEach((input) => {
 	input.addEventListener('input', showNumbers);
-	input.addEventListener('input', gfx.draw);
 });
 
 const colors = [
@@ -376,6 +568,7 @@ const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(
 	200,
 	colors[i],
 ));
+
 cube.forEach((face, i) => {
 	const theta = new Array(3).fill(0);
 	theta[i % 3] = 90;
@@ -386,11 +579,14 @@ cube.forEach((face, i) => {
 	face.translate(...translation);
 });
 const halo = new gfx.Circle(250, 'transparent');
+halo.translate(0, 0, 50);
+
+cube.splice(2);
+cube.splice(0, 1);
 
 gfx.addShapes(...cube, halo);
 
-console.log('halo plane:', halo.plane());
-gfx.draw();
+gfx.animate();
 
 </script>
 </body>
