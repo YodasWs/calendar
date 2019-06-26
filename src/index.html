@@ -186,21 +186,30 @@ const gfx = (function() {
 			if (this.points.length === 0) return [];
 			if (this.renderedPoints.length === 0) this.render();
 
-			// Need three non-origin points
+			// Need two non-origin points
 			const v = [];
 			let i = 0;
 			do {
-				if (this.renderedPoints[i] !== [0, 0, 0])
-					v.push(this.renderedPoints[i]);
-			} while (v.length < 3 && ++i < this.renderedPoints.length);
-			if (v.length !== 3) {
-				console.log('Need at least three points to calculate plane!');
+				if (this.points[i] === [0, 0, 0]) continue;
+
+				// Take the first point
+				if (v.length === 0) {
+					v.push(this.points[i]);
+					continue;
+				}
+				if (Math.hypot(...matrix.crossProduct(this.points[i], v[0])) !== 0)
+					v.push(this.points[i]);
+			} while (v.length < 2 && ++i < this.points.length);
+
+			if (v.length !== 2) {
+				console.log('Need at least two points to calculate plane!');
 				return [0, 0, 0];
 			}
 
-			const ab = matrix.add(v[0], matrix.multiply(v[1], -1));
-			const ac = matrix.add(v[0], matrix.multiply(v[2], -1));
-			return matrix.crossProduct(ab, ac);
+			// Normal vector to plane before rotation and translation
+			return matrix.form2dCol(matrix.crossProduct(...v));
+
+			// But if all shapes' points are defined on the X-Y plane, then the normal vector should simply be (0, 0, 1)…
 		},
 
 		render() {
