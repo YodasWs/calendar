@@ -13,9 +13,10 @@
 	<label><input id="x" type="range" min="-320" max="320" value="0"/><output>0</output></label>
 	<label><input id="y" type="range" min="-240" max="240" value="0"/><output>0</output></label>
 	<label><input id="z" type="range" min="1" max="9" value="1"/><output>1</output></label>
+	<button id="restart">Restart Animation</button>
 	<h2>Rotation</h2>
 	<label><input id="radx" type="range" min="-180" max="180" value="35"/><output>35</output></label>
-	<label><input id="rady" type="range" min="0" max="360" value="45" disabled/><output>45</output></label>
+	<label><input id="rady" type="range" min="0" max="360" value="45"/><output>45</output></label>
 	<label><input id="radz" type="range" min="-180" max="180" value="0"/><output>0</output></label>
 </form>
 <script>
@@ -221,7 +222,10 @@ const gfx = (function() {
 						this.rotation,
 						matrix.form2dCol(matrix.add(
 							point,
-							this.translation,
+							matrix.multiply(
+								this.translation,
+								Math.min(1, tick > timePoints[1] ? (tick - timePoints[1]) / translationSpeed : 0),
+							),
 						)),
 					),
 				);
@@ -300,6 +304,21 @@ const gfx = (function() {
 
 	let tick = 0;
 
+	// Important values for animation
+	const vectorLength = 100;
+	const vectorStretchSpeed = 5;
+	const translationSpeed = 30;
+	const timePoints = [
+		0,
+		// Animate Normals
+		vectorLength / vectorStretchSpeed,
+		vectorLength / vectorStretchSpeed + translationSpeed,
+		// Animate Intersection
+		vectorLength / vectorStretchSpeed + translationSpeed + vectorLength / vectorStretchSpeed,
+		vectorLength / vectorStretchSpeed + translationSpeed + vectorLength / vectorStretchSpeed + translationSpeed,
+		vectorLength / vectorStretchSpeed + translationSpeed + vectorLength / vectorStretchSpeed + translationSpeed + translationSpeed,
+	];
+
 	return {
 		Circle,
 		Square,
@@ -308,11 +327,15 @@ const gfx = (function() {
 			shapes.push(...shape)
 		},
 
+		restart() {
+			tick = 0;
+		},
+
 		animate() {
 			const fps = 45;
 			const speed = 1;
-			const inputAngle = document.getElementById('rady');
-			inputAngle.value = (Number.parseInt(inputAngle.value, 10) + speed) % 360;
+			// const inputAngle = document.getElementById('rady');
+			// inputAngle.value = (Number.parseInt(inputAngle.value, 10) + speed) % 360;
 			this.draw();
 			setTimeout(this.animate.bind(this), 1000 / fps);
 			tick++;
@@ -340,14 +363,52 @@ const gfx = (function() {
 
 			// TODO: Need to find where shapes intersect then disect
 			renderShapes.forEach((shape, i) => {
-				const intersection = matrix.crossProduct(halo.plane, shape.plane);
+				const intersection = matrix.crossProduct(
+					matrix.multiply(
+						renderShapes[0].rotation,
+						renderShapes[0].plane,
+					),
+					matrix.multiply(
+						halo.rotation,
+						halo.plane,
+					),
+				);
 				if (Math.hypot(...intersection) === 0) {
 					// Planes are parallel
 					return;
 				}
+
 				console.log(`Shape ${i} intersects halo!`);
 
-				// Currently, math to determine points in 3D space is done far below, on variable `vectors`
+				const origin = [0, 0, 0];
+				const line = [
+					intersection,
+					origin,
+				];
+
+				// Find line of intersection in 3D space
+				line.forEach((point) => {
+					point = matrix.form2dCol(point);
+					const translation = matrix.add(
+						matrix.multiply(
+							shape.rotation,
+							matrix.form2dCol(shape.translation),
+						),
+						matrix.multiply(
+							matrix.multiply(
+								halo.rotation,
+								matrix.form2dCol(halo.translation),
+							),
+							-1,
+						),
+					);
+					point = matrix.add(
+						point,
+						translation,
+					);
+				});
+
+				// TODO: Find series of points along line of intersection that is within both intersecting shapes
 			});
 
 			renderShapes.push(halo);
@@ -380,21 +441,6 @@ const gfx = (function() {
 			ctx.lineTo(0, 0);
 			ctx.closePath();
 			ctx.stroke();
-
-			// Important values for animation
-			const vectorLength = 100;
-			const vectorStretchSpeed = 5;
-			const translationSpeed = 30;
-			const timePoints = [
-				0,
-				// Animate Normals
-				vectorLength / vectorStretchSpeed,
-				vectorLength / vectorStretchSpeed + translationSpeed,
-				// Animate Intersection
-				vectorLength / vectorStretchSpeed + translationSpeed + vectorLength / vectorStretchSpeed,
-				vectorLength / vectorStretchSpeed + translationSpeed + vectorLength / vectorStretchSpeed + translationSpeed,
-				vectorLength / vectorStretchSpeed + translationSpeed + vectorLength / vectorStretchSpeed + translationSpeed + translationSpeed,
-			];
 
 			let vectors = [];
 
@@ -458,50 +504,60 @@ const gfx = (function() {
 
 				// Animate translation of intersection
 				if (tick > timePoints[3]) {
-					let translation = matrix.multiply(
-						renderShapes[0].translation,
-						Math.min(1, (tick - timePoints[3]) / translationSpeed),
-					);
+					let translation;
 
-					// Translate by shape
-					origin = matrix.flatten(matrix.add(
-						matrix.form2dCol(origin),
-						matrix.multiply(
-							renderShapes[0].rotation,
-							matrix.form2dCol(translation),
-						),
-					));
-					intersect = matrix.flatten(matrix.add(
-						matrix.form2dCol(intersect),
-						matrix.multiply(
-							renderShapes[0].rotation,
-							matrix.form2dCol(translation),
-						),
-					));
-
-					// Translate by halo
-					if (tick > timePoints[4]) {
+					if (tick <= timePoints[4]) {
 						translation = matrix.multiply(
-							halo.translation,
-							Math.min(1, (tick - timePoints[4]) / translationSpeed),
+							renderShapes[0].rotation,
+							matrix.form2dCol(matrix.multiply(
+								renderShapes[0].translation,
+								Math.min(1, (tick - timePoints[3]) / translationSpeed),
+							)),
 						);
+
+						// Translate by shape
 						origin = matrix.flatten(matrix.add(
 							matrix.form2dCol(origin),
-							matrix.multiply(
-								halo.rotation,
-								matrix.form2dCol(translation),
-							),
+							translation,
 						));
 						intersect = matrix.flatten(matrix.add(
 							matrix.form2dCol(intersect),
-							matrix.multiply(
-								halo.rotation,
-								matrix.form2dCol(translation),
-							),
+							translation,
 						));
 					}
+
+					// Translate by halo
+					if (tick > timePoints[4]) {
+						translation = matrix.add(
+							matrix.multiply(
+								renderShapes[0].rotation,
+								matrix.form2dCol(
+									renderShapes[0].translation,
+								),
+							),
+							matrix.multiply(
+								matrix.multiply(
+									halo.rotation,
+									matrix.form2dCol(matrix.multiply(
+										halo.translation,
+										Math.min(1, (tick - timePoints[4]) / translationSpeed),
+									)),
+								),
+								-1,
+							),
+						);
+					}
+
+					origin = matrix.flatten(matrix.add(
+						matrix.form2dCol(origin),
+						translation,
+					));
+					intersect = matrix.flatten(matrix.add(
+						matrix.form2dCol(intersect),
+						translation,
+					));
 				}
-				
+
 				origin = matrix.form2dCol(origin);
 				intersect = matrix.form2dCol(intersect);
 
@@ -552,6 +608,10 @@ document.querySelectorAll('input[type="range"]').forEach((input) => {
 	input.addEventListener('input', showNumbers);
 });
 
+const btn = document.getElementById('restart');
+console.log('btn:', btn);
+btn.addEventListener('click', gfx.restart);
+
 const colors = [
 	'#fff0ff',
 	'#fff0f0',
@@ -574,7 +634,7 @@ cube.forEach((face, i) => {
 	theta[i % 3] = 90;
 	face.rotate(...theta);
 
-	const translation = new Array(3).fill(0);
+	const translation = new Array(3).fill(50);
 	translation[2] = (-1) ** (i % 2) * 100;
 	face.translate(...translation);
 });
