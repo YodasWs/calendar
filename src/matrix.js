@@ -9,16 +9,8 @@ const Matrix = (function() {
 
 	const create = (n, m) => new Array(n).fill(0).map(r => new Array(m).fill(0));
 
-	const flatten = m => m.reduce((f, r) => f.concat(r), []);
-
-	const cMultiply = (m1, m2) => {
-		if (m2[0] instanceof Array && m2[0].length === 1) {
-			m2 = flatten(m2);
-		}
-	};
-
 	const basicOperations = {
-		flatten,
+		flatten: m => m.reduce((f, r) => f.concat(r), []),
 
 		identity(n) {
 			const iden = create(n, n);
@@ -60,11 +52,6 @@ const Matrix = (function() {
 			if (m1[0].length !== m2.length) {
 				console.log('Error! Matrices are incorrect size!');
 				return;
-			}
-
-			// TODO: Use Cardovian multiplication for vector
-			if (typeof m2[0] === 'number' || m2[0].length === 1) {
-				// return cMultiply(m1, m2);
 			}
 
 			// Matrix multiplication!
