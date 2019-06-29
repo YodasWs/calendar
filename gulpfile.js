@@ -22,6 +22,7 @@ const plugins = require('gulp-load-plugins')({
 	rename: {
 		'gulp-htmlmin': 'compileHTML',
 		'gulp-sass': 'compileSass',
+		'gulp-babel': 'compileJS',
 	},
 });
 
@@ -36,12 +37,31 @@ const options = {
 		removeStyleLinkTypeAttributes: true,
 		useShortDoctype: true,
 	},
+
 	compileSass: {
 		outputStyle: 'compressed',
 		includePaths: [
 			'src',
 		],
 	},
+
+	compileJS: {
+		comments: false,
+		minified: true,
+		babelrc: false,
+		compact: true,
+		plugins: [
+		],
+		presets: [
+			[
+				'@babel/preset-env',
+				{
+					targets: 'last 2 Chrome versions',
+				},
+			],
+		],
+	},
+
 	dest: 'docs/',
 
 	watch: {
@@ -89,6 +109,16 @@ function runTasks(task) {
 		fileType: 'css',
 	},
 	{
+		name: 'compile:js',
+		src: [
+			'src/**/*.js',
+		],
+		tasks: [
+			'compileJS',
+		],
+		fileType: 'js',
+	},
+	{
 		name: 'compile:html',
 		src: [
 			'./src/**/*.html',
@@ -106,12 +136,16 @@ function runTasks(task) {
 gulp.task('compile', gulp.parallel(
 	'compile:html',
 	'compile:css',
+	'compile:js',
 ));
 
 gulp.task('watch', () => {
 	gulp.watch([
 		'./src/**/*.{sa,sc,c}ss',
 	], options.watch, gulp.series('compile:css'));
+	gulp.watch([
+		'./src/**/*.{js,json}',
+	], options.watch, gulp.series('compile:js'));
 	gulp.watch([
 		'./src/**/*.html',
 	], options.watch, gulp.series('compile:html'));

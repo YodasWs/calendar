@@ -13,7 +13,10 @@
   },
   "homepage": "https://github.com/YodasWs/calendar#readme",
   "dependencies": {
+    "@babel/core": "^7.4.5",
+    "@babel/preset-env": "^7.4.5",
     "gulp": "github:gulpjs/gulp#4.0",
+    "gulp-babel": "^8.0.0",
     "gulp-htmlmin": "^5.0.1",
     "gulp-load-plugins": "^1.6.0",
     "gulp-sass": "^4.0.2",
