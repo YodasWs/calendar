@@ -35,10 +35,10 @@ const Matrix = (function() {
 			}
 
 			if (typeof m1[0] === 'number') {
-				return m1.slice(0).map((c, i) => c + m2[i]);
+				return m1.map((c, i) => c + m2[i]);
 			}
 
-			return m1.slice(0).map((row, i) => row.map((cell, j) => cell + m2[i][j]));
+			return m1.map((row, i) => row.map((cell, j) => cell + m2[i][j]));
 		},
 
 		multiply(m1, m2) {
@@ -65,21 +65,21 @@ const Matrix = (function() {
 		},
 	};
 
-	const axonometric = (...theta) => {
-		theta = theta.map(a => a * Math.PI / 180);
+	const axonometric = (...θ) => {
+		θ = θ.map(a => a * Math.PI / 180);
 		const X = [
 			[1, 0, 0],
-			[0, Math.cos(theta[x]), Math.sin(theta[x])],
-			[0, -Math.sin(theta[x]), Math.cos(theta[x])],
+			[0, Math.cos(θ[x]), Math.sin(θ[x])],
+			[0, -Math.sin(θ[x]), Math.cos(θ[x])],
 		];
 		const Y = [
-			[Math.cos(theta[y]), 0, -Math.sin(theta[y])],
+			[Math.cos(θ[y]), 0, -Math.sin(θ[y])],
 			[0, 1, 0],
-			[Math.sin(theta[y]), 0, Math.cos(theta[y])],
+			[Math.sin(θ[y]), 0, Math.cos(θ[y])],
 		];
 		const Z = [
-			[Math.cos(theta[z]), Math.sin(theta[z]), 0],
-			[-Math.sin(theta[z]), Math.cos(theta[z]), 0],
+			[Math.cos(θ[z]), Math.sin(θ[z]), 0],
+			[-Math.sin(θ[z]), Math.cos(θ[z]), 0],
 			[0, 0, 1],
 		];
 		return basicOperations.multiply(
