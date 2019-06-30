@@ -1,16 +1,12 @@
-<!doctype html><html lang="en-US"><head><meta charset="utf-8"/><title>3D Graphics!</title><link rel="stylesheet" href="index.css"/><script src="matrix.js"></script></head><body><h1>3D Graphics!</h1><canvas width="640" height="480"></canvas><form><h2>Camera</h2><label><input id="x" type="range" min="-320" max="320" value="0"/><output>0</output></label> <label><input id="y" type="range" min="-240" max="240" value="0"/><output>0</output></label> <label><input id="z" type="range" min="1" max="9" value="1"/><output>1</output></label> <button id="restart">Restart Animation</button><h2>Rotation</h2><label><input id="radx" type="range" min="-180" max="180" value="35"/><output>35</output></label> <label><input id="rady" type="range" min="0" max="360" value="45"/><output>45</output></label> <label><input id="radz" type="range" min="-180" max="180" value="0"/><output>0</output></label></form><script>const gfx = (function() {
+<!doctype html><html lang="en-US"><head><meta charset="utf-8"/><title>3D Graphics!</title><link rel="stylesheet" href="index.css"/><script src="matrix.js"></script><script src="webgl.js"></script></head><body><h1>3D Graphics!</h1><canvas width="640" height="480"></canvas><form><h2>Rotation</h2><label><input id="radx" type="range" min="-180" max="180" value="45"/><output>45</output></label> <label><input id="rady" type="range" min="0" max="360" value="35"/><output>35</output></label> <label><input id="radz" type="range" min="-180" max="180" value="0"/><output>0</output></label></form><script>const gfx = (function() {
 	const canvas = document.querySelector('canvas');
 	const gl = canvas.getContext('webgl');
 
 	const renderShapes = [];
 	const shapes = [];
 
-	function Shape(fillStyle) {
-		this.fillStyle = fillStyle;
-		this.strokeStyle = 'black';
-		this.lineJoin = 'round';
-		this.lineCap = 'round';
-		this.lineWidth = 10;
+	function Shape(color) {
+		this.color = color;
 		this.rotation = matrix.identity(3);
 		this.translation = new Array(3).fill(0);
 		this.points = [];
@@ -18,57 +14,27 @@
 	}
 
 	Shape.prototype = {
-		plane() {
-			if (this.points.length === 0) return [];
-			if (this.renderedPoints.length === 0) this.render();
-
-			// Need two non-origin points
-			const v = [];
-			let i = 0;
-			do {
-				if (this.points[i] === [0, 0, 0]) continue;
-
-				// Take the first point
-				if (v.length === 0) {
-					v.push(this.points[i]);
-					continue;
-				}
-				if (Math.hypot(...matrix.crossProduct(this.points[i], v[0])) !== 0)
-					v.push(this.points[i]);
-			} while (v.length < 2 && ++i < this.points.length);
-
-			if (v.length !== 2) {
-				console.log('Need at least two points to calculate plane!');
-				return [0, 0, 0];
+		// TODO: Pass Points to Buffer
+		render() {
+			if (this.renderedPoints.length === 0) {
+				this.points.forEach((point) => {
+					this.renderedPoints.push(
+						matrix.multiply(
+							matrix.multiply(
+								this.rotation,
+								matrix.form2dCol(matrix.add(
+									point,
+									this.translation,
+								)),
+							),
+							1 / 640,
+						),
+					);
+				});
 			}
 
-			// Normal vector to plane before rotation and translation
-			return matrix.form2dCol(matrix.crossProduct(...v));
-
-			// But if all shapes' points are defined on the X-Y plane, then the normal vector should simply be (0, 0, 1)…
-		},
-
-		render() {
-			this.renderedPoints = [];
-			let z = -Infinity;
-			this.points.forEach((point) => {
-				const p = matrix.projection(
-					matrix.multiply(
-						this.rotation,
-						matrix.form2dCol(matrix.add(
-							point,
-							this.translation,
-						)),
-					),
-				);
-				z = Math.max(z, p[2]);
-				this.renderedPoints.push(p);
-			});
 			return {
 				points: this.renderedPoints,
-				translation: this.translation,
-				rotation: this.rotation,
-				z,
 			};
 		},
 
@@ -95,10 +61,12 @@
 				matrix.multiply(z, y),
 				x,
 			);
+			this.renderedPoints = [];
 		},
 
 		translate(x, y, z) {
 			this.translation = [x, y, z];
+			this.renderedPoints = [];
 		},
 	};
 
@@ -112,14 +80,13 @@
 		];
 	}
 	Square.prototype = {
-		...Shape.prototype,
+		__proto__: Shape.prototype,
 		constructor: Square,
 	};
 
 	function Circle(r, color) {
 		Shape.call(this, color);
 		this.points = [];
-		this.lineWidth = 1;
 
 		for (let θ=0; θ<360; θ+=360/80) {
 			this.points.push([
@@ -130,24 +97,9 @@
 		}
 	}
 	Circle.prototype = {
-		...Shape.prototype,
+		__proto__: Shape.prototype,
 		constructor: Circle,
 	};
-
-	// Important values for animation
-	const vectorLength = 100;
-	const vectorStretchSpeed = 5;
-	const translationSpeed = 30;
-	const timePoints = [
-		0,
-		// Animate Normals
-		vectorLength / vectorStretchSpeed,
-		vectorLength / vectorStretchSpeed + translationSpeed,
-		// Animate Intersection
-		vectorLength / vectorStretchSpeed + translationSpeed + vectorLength / vectorStretchSpeed,
-		vectorLength / vectorStretchSpeed + translationSpeed + vectorLength / vectorStretchSpeed + translationSpeed,
-		vectorLength / vectorStretchSpeed + translationSpeed + vectorLength / vectorStretchSpeed + translationSpeed + translationSpeed,
-	];
 
 	return {
 		Circle,
@@ -157,27 +109,33 @@
 			shapes.push(...shape)
 		},
 
-		restart() {
-		},
-
-		animate() {
-		},
-
 		draw() {
+			const points = [];
+			const colors = [];
+			shapes.forEach((shape) => {
+				shape.render();
+				shape.renderedPoints.forEach((point) => {
+					colors.push(shape.color);
+					points.push(point);
+				});
+			});
+			WebGL.drawScene(points, colors);
+			requestAnimationFrame(gfx.draw);
 		},
 	};
 })();
 
-function setCamera() {
-	matrix.camera = [
-		Number.parseInt(document.getElementById('x').value, 10),
-		Number.parseInt(document.getElementById('y').value, 10),
-		Number.parseInt(document.getElementById('z').value, 10),
-	];
-};
-document.getElementById('x').addEventListener('input', setCamera);
-document.getElementById('y').addEventListener('input', setCamera);
-document.getElementById('z').addEventListener('input', setCamera);
+function rotateCamera() {
+	WebGL.rotateCamera(
+		Number.parseInt(document.getElementById('radx').value, 10),
+		Number.parseInt(document.getElementById('rady').value, 10),
+		Number.parseInt(document.getElementById('radz').value, 10),
+	);
+}
+document.getElementById('radx').addEventListener('input', rotateCamera);
+document.getElementById('rady').addEventListener('input', rotateCamera);
+document.getElementById('radz').addEventListener('input', rotateCamera);
+rotateCamera();
 
 function showNumbers(e) {
 	e.target.closest('label').querySelector('output').innerText = e.target.value;
@@ -186,18 +144,17 @@ document.querySelectorAll('input[type="range"]').forEach((input) => {
 	input.addEventListener('input', showNumbers);
 });
 
-document.getElementById('restart').addEventListener('click', (e) => {
-	e.preventDefault();
-	gfx.restart();
-});
+const a0 = 10 * 16 +  0;
+const f0 = 15 * 16 +  0;
+const ff = 15 * 16 + 15;
 
 const colors = [
-	'#fff0ff',
-	'#fff0f0',
-	'#fffff0',
-	'#f0fff0',
-	'#f0ffff',
-	'#f0f0ff',
+	[ff / ff, a0 / ff, ff / ff, 1],
+	[ff / ff, a0 / ff, a0 / ff, 1],
+	[ff / ff, ff / ff, a0 / ff, 1],
+	[a0 / ff, ff / ff, a0 / ff, 1],
+	[a0 / ff, ff / ff, ff / ff, 1],
+	[a0 / ff, a0 / ff, ff / ff, 1],
 ];
 
 const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(
@@ -217,9 +174,29 @@ cube.forEach((face, i) => {
 	translation[2] = (-1) ** (i % 2) * 100;
 	face.translate(...translation);
 });
-const halo = new gfx.Circle(250, 'transparent');
-halo.translate(0, 0, 50);
+const halo = new gfx.Circle(250, [1, 1, 1, 1]);
 
 gfx.addShapes(...cube, halo);
 
-gfx.animate();</script></body></html>
+/***********************************************************************************/
+// All code below here is from MDN's WebGL Tutorial
+// https://github.com/mdn/webgl-examples/blob/gh-pages/tutorial/sample5/webgl-demo.js
+
+//
+// Start here
+//
+(() => {
+	const canvas = document.querySelector('canvas');
+
+	// If we don't have a GL context, give up now
+
+	if (!canvas.getContext('webgl')) {
+		console.error('Unable to initialize WebGL. Your browser or machine may not support it.');
+		return;
+	}
+
+	WebGL.init(canvas);
+
+	// Draw the scene repeatedly
+	requestAnimationFrame(gfx.draw);
+})();</script></body></html>

@@ -5,16 +5,12 @@
 <title>3D Graphics!</title>
 <link rel="stylesheet" href="index.css"/>
 <script src="matrix.js"></script>
+<script src="webgl.js"></script>
 </head>
 <body>
 <h1>3D Graphics!</h1>
 <canvas width="640" height="480"></canvas>
 <form>
-	<h2>Camera</h2>
-	<label><input id="x" type="range" min="-320" max="320" value="0"/><output>0</output></label>
-	<label><input id="y" type="range" min="-240" max="240" value="0"/><output>0</output></label>
-	<label><input id="z" type="range" min="1" max="9" value="1"/><output>1</output></label>
-	<button id="restart">Restart Animation</button>
 	<h2>Rotation</h2>
 	<label><input id="radx" type="range" min="-180" max="180" value="45"/><output>45</output></label>
 	<label><input id="rady" type="range" min="0" max="360" value="35"/><output>35</output></label>
@@ -29,12 +25,8 @@ const gfx = (function() {
 	const renderShapes = [];
 	const shapes = [];
 
-	function Shape(fillStyle) {
-		this.fillStyle = fillStyle;
-		this.strokeStyle = 'black';
-		this.lineJoin = 'round';
-		this.lineCap = 'round';
-		this.lineWidth = 10;
+	function Shape(color) {
+		this.color = color;
 		this.rotation = matrix.identity(3);
 		this.translation = new Array(3).fill(0);
 		this.points = [];
@@ -42,57 +34,27 @@ const gfx = (function() {
 	}
 
 	Shape.prototype = {
-		plane() {
-			if (this.points.length === 0) return [];
-			if (this.renderedPoints.length === 0) this.render();
-
-			// Need two non-origin points
-			const v = [];
-			let i = 0;
-			do {
-				if (this.points[i] === [0, 0, 0]) continue;
-
-				// Take the first point
-				if (v.length === 0) {
-					v.push(this.points[i]);
-					continue;
-				}
-				if (Math.hypot(...matrix.crossProduct(this.points[i], v[0])) !== 0)
-					v.push(this.points[i]);
-			} while (v.length < 2 && ++i < this.points.length);
-
-			if (v.length !== 2) {
-				console.log('Need at least two points to calculate plane!');
-				return [0, 0, 0];
+		// TODO: Pass Points to Buffer
+		render() {
+			if (this.renderedPoints.length === 0) {
+				this.points.forEach((point) => {
+					this.renderedPoints.push(
+						matrix.multiply(
+							matrix.multiply(
+								this.rotation,
+								matrix.form2dCol(matrix.add(
+									point,
+									this.translation,
+								)),
+							),
+							1 / 640,
+						),
+					);
+				});
 			}
 
-			// Normal vector to plane before rotation and translation
-			return matrix.form2dCol(matrix.crossProduct(...v));
-
-			// But if all shapes' points are defined on the X-Y plane, then the normal vector should simply be (0, 0, 1)…
-		},
-
-		render() {
-			this.renderedPoints = [];
-			let z = -Infinity;
-			this.points.forEach((point) => {
-				const p = matrix.projection(
-					matrix.multiply(
-						this.rotation,
-						matrix.form2dCol(matrix.add(
-							point,
-							this.translation,
-						)),
-					),
-				);
-				z = Math.max(z, p[2]);
-				this.renderedPoints.push(p);
-			});
 			return {
 				points: this.renderedPoints,
-				translation: this.translation,
-				rotation: this.rotation,
-				z,
 			};
 		},
 
@@ -119,10 +81,12 @@ const gfx = (function() {
 				matrix.multiply(z, y),
 				x,
 			);
+			this.renderedPoints = [];
 		},
 
 		translate(x, y, z) {
 			this.translation = [x, y, z];
+			this.renderedPoints = [];
 		},
 	};
 
@@ -136,14 +100,13 @@ const gfx = (function() {
 		];
 	}
 	Square.prototype = {
-		...Shape.prototype,
+		__proto__: Shape.prototype,
 		constructor: Square,
 	};
 
 	function Circle(r, color) {
 		Shape.call(this, color);
 		this.points = [];
-		this.lineWidth = 1;
 
 		for (let θ=0; θ<360; θ+=360/80) {
 			this.points.push([
@@ -154,24 +117,9 @@ const gfx = (function() {
 		}
 	}
 	Circle.prototype = {
-		...Shape.prototype,
+		__proto__: Shape.prototype,
 		constructor: Circle,
 	};
-
-	// Important values for animation
-	const vectorLength = 100;
-	const vectorStretchSpeed = 5;
-	const translationSpeed = 30;
-	const timePoints = [
-		0,
-		// Animate Normals
-		vectorLength / vectorStretchSpeed,
-		vectorLength / vectorStretchSpeed + translationSpeed,
-		// Animate Intersection
-		vectorLength / vectorStretchSpeed + translationSpeed + vectorLength / vectorStretchSpeed,
-		vectorLength / vectorStretchSpeed + translationSpeed + vectorLength / vectorStretchSpeed + translationSpeed,
-		vectorLength / vectorStretchSpeed + translationSpeed + vectorLength / vectorStretchSpeed + translationSpeed + translationSpeed,
-	];
 
 	return {
 		Circle,
@@ -181,27 +129,33 @@ const gfx = (function() {
 			shapes.push(...shape)
 		},
 
-		restart() {
-		},
-
-		animate() {
-		},
-
 		draw() {
+			const points = [];
+			const colors = [];
+			shapes.forEach((shape) => {
+				shape.render();
+				shape.renderedPoints.forEach((point) => {
+					colors.push(shape.color);
+					points.push(point);
+				});
+			});
+			WebGL.drawScene(points, colors);
+			requestAnimationFrame(gfx.draw);
 		},
 	};
 })();
 
-function setCamera() {
-	matrix.camera = [
-		Number.parseInt(document.getElementById('x').value, 10),
-		Number.parseInt(document.getElementById('y').value, 10),
-		Number.parseInt(document.getElementById('z').value, 10),
-	];
-};
-document.getElementById('x').addEventListener('input', setCamera);
-document.getElementById('y').addEventListener('input', setCamera);
-document.getElementById('z').addEventListener('input', setCamera);
+function rotateCamera() {
+	WebGL.rotateCamera(
+		Number.parseInt(document.getElementById('radx').value, 10),
+		Number.parseInt(document.getElementById('rady').value, 10),
+		Number.parseInt(document.getElementById('radz').value, 10),
+	);
+}
+document.getElementById('radx').addEventListener('input', rotateCamera);
+document.getElementById('rady').addEventListener('input', rotateCamera);
+document.getElementById('radz').addEventListener('input', rotateCamera);
+rotateCamera();
 
 function showNumbers(e) {
 	e.target.closest('label').querySelector('output').innerText = e.target.value;
@@ -210,18 +164,17 @@ document.querySelectorAll('input[type="range"]').forEach((input) => {
 	input.addEventListener('input', showNumbers);
 });
 
-document.getElementById('restart').addEventListener('click', (e) => {
-	e.preventDefault();
-	gfx.restart();
-});
+const a0 = 10 * 16 +  0;
+const f0 = 15 * 16 +  0;
+const ff = 15 * 16 + 15;
 
 const colors = [
-	'#fff0ff',
-	'#fff0f0',
-	'#fffff0',
-	'#f0fff0',
-	'#f0ffff',
-	'#f0f0ff',
+	[ff / ff, a0 / ff, ff / ff, 1],
+	[ff / ff, a0 / ff, a0 / ff, 1],
+	[ff / ff, ff / ff, a0 / ff, 1],
+	[a0 / ff, ff / ff, a0 / ff, 1],
+	[a0 / ff, ff / ff, ff / ff, 1],
+	[a0 / ff, a0 / ff, ff / ff, 1],
 ];
 
 const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(
@@ -241,372 +194,33 @@ cube.forEach((face, i) => {
 	translation[2] = (-1) ** (i % 2) * 100;
 	face.translate(...translation);
 });
-const halo = new gfx.Circle(250, 'transparent');
-halo.translate(0, 0, 50);
+const halo = new gfx.Circle(250, [1, 1, 1, 1]);
 
 gfx.addShapes(...cube, halo);
-
-gfx.animate();
 
 /***********************************************************************************/
 // All code below here is from MDN's WebGL Tutorial
 // https://github.com/mdn/webgl-examples/blob/gh-pages/tutorial/sample5/webgl-demo.js
 
-let cubeRotation = 0.0;
-
-main();
-
 //
 // Start here
 //
-function main() {
-  const canvas = document.querySelector('canvas');
-  const gl = canvas.getContext('webgl');
+(() => {
+	const canvas = document.querySelector('canvas');
 
-  // If we don't have a GL context, give up now
+	// If we don't have a GL context, give up now
 
-  if (!gl) {
-    alert('Unable to initialize WebGL. Your browser or machine may not support it.');
-    return;
-  }
+	if (!canvas.getContext('webgl')) {
+		console.error('Unable to initialize WebGL. Your browser or machine may not support it.');
+		return;
+	}
 
-  // Vertex shader program
+	WebGL.init(canvas);
 
-  const vsSource = `
-    attribute vec4 aVertexPosition;
-    attribute vec4 aVertexColor;
+	// Draw the scene repeatedly
+	requestAnimationFrame(gfx.draw);
+})();
 
-    uniform mat4 uModelViewMatrix;
-    uniform mat4 uProjectionMatrix;
-
-    varying lowp vec4 vColor;
-
-    void main(void) {
-      gl_Position = uProjectionMatrix * uModelViewMatrix * aVertexPosition;
-      vColor = aVertexColor;
-    }
-  `;
-
-  // Fragment shader program
-
-  const fsSource = `
-    varying lowp vec4 vColor;
-
-    void main(void) {
-      gl_FragColor = vColor;
-    }
-  `;
-
-  // Initialize a shader program; this is where all the lighting
-  // for the vertices and so forth is established.
-  const shaderProgram = initShaderProgram(gl, vsSource, fsSource);
-
-  // Collect all the info needed to use the shader program.
-  // Look up which attributes our shader program is using
-  // for aVertexPosition, aVevrtexColor and also
-  // look up uniform locations.
-  const programInfo = {
-    program: shaderProgram,
-    attribLocations: {
-      vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-      vertexColor: gl.getAttribLocation(shaderProgram, 'aVertexColor'),
-    },
-    uniformLocations: {
-      projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-      modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
-    },
-  };
-
-  // Here's where we call the routine that builds all the
-  // objects we'll be drawing.
-  const buffers = initBuffers(gl);
-
-  let then = 0;
-
-  // Draw the scene repeatedly
-  function render(now) {
-    now /= 1000;  // convert to seconds
-    const deltaTime = now - then;
-    then = now;
-
-    drawScene(gl, programInfo, buffers, deltaTime);
-
-    requestAnimationFrame(render);
-  }
-  requestAnimationFrame(render);
-}
-
-//
-// initBuffers
-//
-// Initialize the buffers we'll need. For this demo, we just
-// have one object -- a simple three-dimensional cube.
-//
-function initBuffers(gl) {
-
-  // Create a buffer for the cube's vertex positions.
-
-  const positionBuffer = gl.createBuffer();
-
-  // Select the positionBuffer as the one to apply buffer
-  // operations to from here out.
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-  // Now create an array of positions for the cube.
-
-  const positions = [
-    // Front face
-    -1.0, -1.0,  1.0,
-     1.0, -1.0,  1.0,
-     1.0,  1.0,  1.0,
-    -1.0,  1.0,  1.0,
-
-    // Back face
-    -1.0, -1.0, -1.0,
-    -1.0,  1.0, -1.0,
-     1.0,  1.0, -1.0,
-     1.0, -1.0, -1.0,
-
-    // Top face
-    -1.0,  1.0, -1.0,
-    -1.0,  1.0,  1.0,
-     1.0,  1.0,  1.0,
-     1.0,  1.0, -1.0,
-
-    // Bottom face
-    -1.0, -1.0, -1.0,
-     1.0, -1.0, -1.0,
-     1.0, -1.0,  1.0,
-    -1.0, -1.0,  1.0,
-
-    // Right face
-     1.0, -1.0, -1.0,
-     1.0,  1.0, -1.0,
-     1.0,  1.0,  1.0,
-     1.0, -1.0,  1.0,
-
-    // Left face
-    -1.0, -1.0, -1.0,
-    -1.0, -1.0,  1.0,
-    -1.0,  1.0,  1.0,
-    -1.0,  1.0, -1.0,
-  ];
-
-  // Now pass the list of positions into WebGL to build the
-  // shape. We do this by creating a Float32Array from the
-  // JavaScript array, then use it to fill the current buffer.
-
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
-  // Now set up the colors for the faces. We'll use solid colors
-  // for each face.
-
-  const faceColors = [
-    [1.0,  1.0,  1.0,  1.0],
-    [1.0,  0.0,  0.0,  1.0],
-    [0.0,  1.0,  0.0,  1.0],
-    [0.0,  0.0,  1.0,  1.0],
-    [1.0,  1.0,  0.0,  1.0],
-    [1.0,  0.0,  1.0,  1.0],
-  ];
-
-  // Convert the array of colors into a table for all the vertices.
-
-  const colors = [];
-
-  faceColors.forEach((c) => {
-    colors.push(matrix.flatten([c, c, c, c]));
-  });
-
-  const colorBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(matrix.flatten(colors)), gl.STATIC_DRAW);
-
-  // Build the element array buffer; this specifies the indices
-  // into the vertex arrays for each face's vertices.
-
-  const indexBuffer = gl.createBuffer();
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-
-  // This array defines each face as two triangles, using the
-  // indices into the vertex array to specify each triangle's
-  // position.
-
-  const indices = [
-    0,  1,  2,      0,  2,  3,    // front
-    4,  5,  6,      4,  6,  7,    // back
-    8,  9,  10,     8,  10, 11,   // top
-    12, 13, 14,     12, 14, 15,   // bottom
-    16, 17, 18,     16, 18, 19,   // right
-    20, 21, 22,     20, 22, 23,   // left
-  ];
-
-  // Now send the element array to GL
-
-  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,
-      new Uint16Array(indices), gl.STATIC_DRAW);
-
-  return {
-    position: positionBuffer,
-    color: colorBuffer,
-    indices: indexBuffer,
-  };
-}
-
-//
-// Draw the scene.
-//
-function drawScene(gl, programInfo, buffers, deltaTime) {
-  gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
-  gl.clearDepth(1.0);                 // Clear everything
-  gl.enable(gl.DEPTH_TEST);           // Enable depth testing
-  gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
-
-  // Clear the canvas before we start drawing on it.
-
-  gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-  // Perspective
-  const projectionMatrix = (() => {
-	  const S = 1 / 3;
-	  return matrix.flatten([
-		  [S * gl.canvas.height / gl.canvas.width, 0, 0, 0],
-		  [0, S, 0, 0],
-		  [0, 0, -1 / 2, 0],
-		  [0, 0, 0, 1],
-	  ]);
-  })();
-
-  // Camera Location
-  const modelViewMatrix = matrix.flatten([
-	...matrix.axonometric(
-		Number.parseInt(document.getElementById('radx').value, 10),
-		Number.parseInt(document.getElementById('rady').value, 10),
-		Number.parseInt(document.getElementById('radz').value, 10),
-	).map(r => r.push(0) && r),
-	[0, 0, 0, 1],
-  ]);
-
-  // Tell WebGL how to pull out the positions from the position
-  // buffer into the vertexPosition attribute
-  {
-    const numComponents = 3;
-    const type = gl.FLOAT;
-    const normalize = false;
-    const stride = 0;
-    const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
-    gl.vertexAttribPointer(
-        programInfo.attribLocations.vertexPosition,
-        numComponents,
-        type,
-        normalize,
-        stride,
-        offset);
-    gl.enableVertexAttribArray(
-        programInfo.attribLocations.vertexPosition);
-  }
-
-  // Tell WebGL how to pull out the colors from the color buffer
-  // into the vertexColor attribute.
-  {
-    const numComponents = 4;
-    const type = gl.FLOAT;
-    const normalize = false;
-    const stride = 0;
-    const offset = 0;
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
-    gl.vertexAttribPointer(
-        programInfo.attribLocations.vertexColor,
-        numComponents,
-        type,
-        normalize,
-        stride,
-        offset);
-    gl.enableVertexAttribArray(
-        programInfo.attribLocations.vertexColor);
-  }
-
-  // Tell WebGL which indices to use to index the vertices
-  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
-
-  // Tell WebGL to use our program when drawing
-
-  gl.useProgram(programInfo.program);
-
-  // Set the shader uniforms
-
-  gl.uniformMatrix4fv(
-      programInfo.uniformLocations.projectionMatrix,
-      false,
-      projectionMatrix);
-  gl.uniformMatrix4fv(
-      programInfo.uniformLocations.modelViewMatrix,
-      false,
-      modelViewMatrix);
-
-  {
-    const vertexCount = 36;
-    const type = gl.UNSIGNED_SHORT;
-    const offset = 0;
-    gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
-  }
-
-  // Update the rotation for the next draw
-
-  cubeRotation += deltaTime;
-}
-
-//
-// Initialize a shader program, so WebGL knows how to draw our data
-//
-function initShaderProgram(gl, vsSource, fsSource) {
-  const vertexShader = loadShader(gl, gl.VERTEX_SHADER, vsSource);
-  const fragmentShader = loadShader(gl, gl.FRAGMENT_SHADER, fsSource);
-
-  // Create the shader program
-
-  const shaderProgram = gl.createProgram();
-  gl.attachShader(shaderProgram, vertexShader);
-  gl.attachShader(shaderProgram, fragmentShader);
-  gl.linkProgram(shaderProgram);
-
-  // If creating the shader program failed, alert
-
-  if (!gl.getProgramParameter(shaderProgram, gl.LINK_STATUS)) {
-    alert('Unable to initialize the shader program: ' + gl.getProgramInfoLog(shaderProgram));
-    return null;
-  }
-
-  return shaderProgram;
-}
-
-//
-// creates a shader of the given type, uploads the source and
-// compiles it.
-//
-function loadShader(gl, type, source) {
-  const shader = gl.createShader(type);
-
-  // Send the source to the shader object
-
-  gl.shaderSource(shader, source);
-
-  // Compile the shader program
-
-  gl.compileShader(shader);
-
-  // See if it compiled successfully
-
-  if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-    alert('An error occurred compiling the shaders: ' + gl.getShaderInfoLog(shader));
-    gl.deleteShader(shader);
-    return null;
-  }
-
-  return shader;
-}
 </script>
 </body>
 </html>
