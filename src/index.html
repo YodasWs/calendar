@@ -98,6 +98,7 @@ const gfx = (function() {
 			[x + height, y + height, 0],
 			[x + height, y, 0],
 		];
+		this.indices = [].concat([0, 1, 2], [0, 2, 3]);
 	}
 	Square.prototype = {
 		__proto__: Shape.prototype,
@@ -106,15 +107,19 @@ const gfx = (function() {
 
 	function Circle(r, color) {
 		Shape.call(this, color);
-		this.points = [];
+		this.points = [[0,0,0]];
+		this.indices = [];
 
+		let i = 0;
 		for (let θ=0; θ<360; θ+=360/80) {
 			this.points.push([
 				r * Math.cos(θ * Math.PI / 180),
 				r * Math.sin(θ * Math.PI / 180),
 				0,
 			]);
+			if (i++ > 0) this.indices.push(0, i - 1, i);
 		}
+		this.indices.push(0, 1, i);
 	}
 	Circle.prototype = {
 		__proto__: Shape.prototype,
@@ -132,14 +137,18 @@ const gfx = (function() {
 		draw() {
 			const points = [];
 			const colors = [];
+			let indices = [];
+			let indexOffset = 0;
 			shapes.forEach((shape) => {
 				shape.render();
-				shape.renderedPoints.forEach((point) => {
+				shape.renderedPoints.forEach((point, j) => {
 					colors.push(shape.color);
 					points.push(point);
 				});
+				indices = indices.concat(shape.indices.map(c => c + indexOffset));
+				indexOffset = points.length;
 			});
-			WebGL.drawScene(points, colors);
+			WebGL.drawScene(points, colors, indices);
 			requestAnimationFrame(gfx.draw);
 		},
 	};

@@ -212,14 +212,13 @@ function initBuffers(gl) {
 //
 // Draw the scene.
 //
-function drawScene(points, colors) {
+function drawScene(points, colors, indices) {
 	buffers = {};
 
-	/*
-	const indexBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+	buffers['num-indices'] = indices.length;
+	buffers.indices = gl.createBuffer();
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
 	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-	/**/
 
 	[
 		{
@@ -297,9 +296,9 @@ function drawScene(points, colors) {
 	gl.uniformMatrix4fv(programInfo.uniformLocations.cameraMatrix, false, cameraMatrix);
 
 	{
-		gl.drawArrays(gl.TRIANGLE_STRIP, 0, buffers['num-position'] / 3);
+		// gl.drawArrays(gl.TRIANGLE_STRIP, 0, buffers['num-position'] / 3);
 		const vertexCount = 36;
-		// gl.drawElements(gl.TRIANGLES, vertexCount, gl.UNSIGNED_SHORT, 0);
+		gl.drawElements(gl.TRIANGLES, buffers['num-indices'], gl.UNSIGNED_SHORT, 0);
 	}
 }
 
