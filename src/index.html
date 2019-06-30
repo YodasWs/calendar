@@ -199,7 +199,7 @@ cube.forEach((face, i) => {
 	theta[i % 3] = 90;
 	face.rotate(...theta);
 
-	const translation = new Array(3).fill(50);
+	const translation = new Array(3).fill(0);
 	translation[2] = (-1) ** (i % 2) * 100;
 	face.translate(...translation);
 });
