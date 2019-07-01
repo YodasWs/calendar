@@ -29,22 +29,44 @@ const gfx = (function() {
 		this.color = color;
 		this.rotation = matrix.identity(3);
 		this.translation = new Array(3).fill(0);
+		this.renderedNormals = [];
 		this.renderedPoints = [];
 		this.pointColors = [];
 		this.indices = {};
+		this.normals = [];
 		this.points = [];
 	}
 
 	Shape.prototype = {
 		render() {
 			// Only recalculate if necessary
-			if (this.renderedPoints.length === 0 || this.pointColors.length === 0) {
+			if (this.renderedPoints.length === 0 || this.renderedNormals.length === 0 || this.pointColors.length === 0) {
+				this.renderedNormals = [];
 				this.renderedPoints = [];
 				this.pointColors = [];
+
+				const normal = matrix.multiply(
+					this.rotation,
+					matrix.form2dCol(matrix.add(
+						[0, 0, 1],
+						this.translation,
+					)),
+				);
 
 				// Rotate and translate points from xy-plane into 3D space
 				this.points.forEach((point) => {
 					this.pointColors.push(this.color);
+					// this.renderedNormals.push(normal);
+					this.renderedNormals.push(
+						matrix.multiply(
+							this.rotation,
+							[
+								[Math.sign(point[0])],
+								[Math.sign(point[1])],
+								[Math.sign(this.translation[2]) || 1],
+							],
+						),
+					);
 					this.renderedPoints.push(
 						matrix.multiply(
 							matrix.multiply(
