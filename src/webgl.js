@@ -5,7 +5,6 @@
 const WebGL = (function() {
 
 	let gl;
-	let buffers;
 	let programInfo;
 	let shaderProgram;
 
@@ -110,7 +109,7 @@ function loadShader(gl, type, source) {
 //
 function drawScene(bufferData) {
 	// Clear the canvas before we start drawing on it.
-	gl.clearColor(1, 1, 1, 1);
+	gl.clearColor(0, 0, 0, 1);
 	gl.enable(gl.DEPTH_TEST);
 	gl.depthFunc(gl.LEQUAL);
 	gl.clearDepth(1);
@@ -130,27 +129,33 @@ function drawScene(bufferData) {
 	bufferData.forEach((buffer) => {
 		const buffers = {
 			indices: gl.createBuffer(),
-			colors: gl.createBuffer(),
-			points: gl.createBuffer(),
 		};
 
-		// Set Colors Buffer
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.colors);
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(matrix.flatten(buffer.pointColors)), gl.STATIC_DRAW);
-		gl.vertexAttribPointer(
-			programInfo.attribLocations.vertexColor,
-			4, // number of bytes per color
-			gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
+		buffer.points.forEach((p) => {
+		});
 
-		// Set Vertices Buffer
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.points);
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(matrix.flatten(buffer.renderedPoints)), gl.STATIC_DRAW);
-		gl.vertexAttribPointer(
-			programInfo.attribLocations.vertexPosition,
-			3, // number of bytes per point
-			gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
+		[
+			// Colors
+			{
+				array: buffer.pointColors,
+				attrib: 'vertexColor',
+				numBytes: 4,
+			},
+			// Vertices
+			{
+				array: buffer.renderedPoints,
+				attrib: 'vertexPosition',
+				numBytes: 3,
+			},
+		].forEach((buf) => {
+			gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(matrix.flatten(buf.array)), gl.STATIC_DRAW);
+			gl.vertexAttribPointer(
+				programInfo.attribLocations[buf.attrib],
+				buf.numBytes,
+				gl.FLOAT, false, 0, 0);
+			gl.enableVertexAttribArray(programInfo.attribLocations[buf.attrib]);
+		});
 
 		// Set Indices Buffer
 		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
@@ -163,7 +168,7 @@ function drawScene(bufferData) {
 		gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
 		gl.uniformMatrix4fv(programInfo.uniformLocations.cameraMatrix, false, cameraMatrix);
 
-		// TODO: gl.drawElements
+		// Draw!
 		gl.drawElements(buffer.drawType, buffer.indices.length, gl.UNSIGNED_SHORT, 0);
 	});
 }
