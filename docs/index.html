@@ -27,10 +27,7 @@
 
 				const normal = matrix.multiply(
 					this.rotation,
-					matrix.form2dCol(matrix.add(
-						[0, 0, 1],
-						this.translation,
-					)),
+					matrix.form2dCol([0, 0, 1]),
 				);
 
 				// Rotate and translate points from xy-plane into 3D space
@@ -43,18 +40,18 @@
 							[
 								[Math.sign(point[0])],
 								[Math.sign(point[1])],
-								[Math.sign(this.translation[2]) || 1],
+								[1],
 							],
 						),
 					);
 					this.renderedPoints.push(
 						matrix.multiply(
-							matrix.multiply(
-								this.rotation,
-								matrix.form2dCol(matrix.add(
-									point,
-									this.translation,
-								)),
+								matrix.add(
+								matrix.multiply(
+									this.rotation,
+									matrix.form2dCol(point),
+								),
+								matrix.form2dCol(this.translation),
 							),
 							1 / 640,
 						),
@@ -198,21 +195,25 @@ const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(
 cube.forEach((face, i) => {
 	const θ = new Array(3).fill(0);
 	θ[i % 3] = 90;
+	θ[1] += i % 2 * 180
 	face.rotate(...θ);
 
 	const translation = new Array(3).fill(0);
-	translation[2] = (-1) ** (i % 2) * 100;
+	translation[(i + 2) % 3] = (-1) ** (i % 2) * 100;
 	face.translate(...translation);
 });
 
-const halo = new gfx.Circle(250, [
+const halo = new Array(2).fill(0).map(() => new gfx.Circle(250, [
 	Number.parseInt('2e', 16) / ff,
 	Number.parseInt('8b', 16) / ff,
 	Number.parseInt('57', 16) / ff,
 	1.0,
-]);
+]));
+halo[0].translate(0, 0, 0.01);
+halo[1].translate(0, 0, -0.01);
+halo[1].rotate(0, 180, 0);
 
-gfx.addShapes(...cube, halo);
+gfx.addShapes(...cube, ...halo);
 
 /***********************************************************************************/
 // All code below here is from MDN's WebGL Tutorial
