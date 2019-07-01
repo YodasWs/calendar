@@ -31,6 +31,7 @@ const gfx = (function() {
 		this.translation = new Array(3).fill(0);
 		this.points = [];
 		this.renderedPoints = [];
+		this.indices = {};
 	}
 
 	Shape.prototype = {
@@ -53,6 +54,7 @@ const gfx = (function() {
 				});
 			}
 
+			// TODO: Need to return all data ready to be saved in a WebGL Buffer and drawn on screen
 			return {
 				points: this.renderedPoints,
 			};
@@ -98,7 +100,9 @@ const gfx = (function() {
 			[x + height, y + height, 0],
 			[x + height, y, 0],
 		];
-		this.indices = [].concat([0, 1, 2], [0, 2, 3]);
+		this.indices.triangles = [].concat([0, 1, 2], [0, 2, 3]);
+
+		this.drawType = gl.TRIANGLES;
 	}
 	Square.prototype = {
 		__proto__: Shape.prototype,
@@ -108,7 +112,9 @@ const gfx = (function() {
 	function Circle(r, color) {
 		Shape.call(this, color);
 		this.points = [[0,0,0]];
-		this.indices = [];
+		this.indices.triangleFan = [0];
+
+		this.drawType = gl.TRIANGLE_FAN;
 
 		let i = 0;
 		for (let θ=0; θ<360; θ+=360/80) {
@@ -117,9 +123,9 @@ const gfx = (function() {
 				r * Math.sin(θ * Math.PI / 180),
 				0,
 			]);
-			if (i++ > 0) this.indices.push(0, i - 1, i);
+			this.indices.triangleFan.push(++i);
 		}
-		this.indices.push(0, 1, i);
+		this.indices.triangleFan.push(1);
 	}
 	Circle.prototype = {
 		__proto__: Shape.prototype,
@@ -135,18 +141,26 @@ const gfx = (function() {
 		},
 
 		draw() {
+			// TODO: Need to separate shapes into Trianges and Triangle Fans
+
 			const points = [];
 			const colors = [];
-			let indices = [];
-			let indexOffset = 0;
+			const indices = {
+				triangleFan: [],
+				triangles: [],
+			};
 			shapes.forEach((shape) => {
 				shape.render();
 				shape.renderedPoints.forEach((point, j) => {
 					colors.push(shape.color);
 					points.push(point);
 				});
-				indices = indices.concat(shape.indices.map(c => c + indexOffset));
-				indexOffset = points.length;
+				Object.keys(indices).forEach((key) => {
+					if (shape.indices[key]) {
+						const indexOffset = indices[key].length;
+						indices[key] = indices[key].concat(shape.indices[key].map(c => c + indexOffset));
+					}
+				});
 			});
 			WebGL.drawScene(points, colors, indices);
 			requestAnimationFrame(gfx.draw);
@@ -179,10 +193,10 @@ const ff = 15 * 16 + 15;
 
 const colors = [
 	[ff / ff, a0 / ff, ff / ff, 1],
-	[ff / ff, a0 / ff, a0 / ff, 1],
+	[a0 / ff, ff / ff, ff / ff, 1],
 	[ff / ff, ff / ff, a0 / ff, 1],
 	[a0 / ff, ff / ff, a0 / ff, 1],
-	[a0 / ff, ff / ff, ff / ff, 1],
+	[ff / ff, a0 / ff, a0 / ff, 1],
 	[a0 / ff, a0 / ff, ff / ff, 1],
 ];
 
@@ -195,15 +209,21 @@ const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(
 ));
 
 cube.forEach((face, i) => {
-	const theta = new Array(3).fill(0);
-	theta[i % 3] = 90;
-	face.rotate(...theta);
+	const θ = new Array(3).fill(0);
+	θ[i % 3] = 90;
+	face.rotate(...θ);
 
 	const translation = new Array(3).fill(0);
 	translation[2] = (-1) ** (i % 2) * 100;
 	face.translate(...translation);
 });
-const halo = new gfx.Circle(250, [1, 1, 1, 1]);
+
+const halo = new gfx.Circle(250, [
+	Number.parseInt('2e', 16) / ff,
+	Number.parseInt('8b', 16) / ff,
+	Number.parseInt('57', 16) / ff,
+	1.0,
+]);
 
 gfx.addShapes(...cube, halo);
 

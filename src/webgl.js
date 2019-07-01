@@ -213,12 +213,30 @@ function initBuffers(gl) {
 // Draw the scene.
 //
 function drawScene(points, colors, indices) {
+// function drawScene(bufferData)
+	// bufferData.forEach((buffer) => {
+		// TODO: Bind Buffers
+		// TODO: Add Buffer Data
+		// TODO: Use Program
+		// TODO: enableVertexAttribArray
+		// TODO: Set Uniforms
+		// TODO: gl.drawElements
+	// });
 	buffers = {};
 
-	buffers['num-indices'] = indices.length;
 	buffers.indices = gl.createBuffer();
 	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
-	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
+	Object.entries(indices).forEach(([key, val]) => {
+		buffers[`num-indices.${key}`] = val.length;
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices[key]), gl.STATIC_DRAW);
+	});
+
+	/*
+	buffers['num-indices.triangleFans'] = indices.triangleFan.length;
+	buffers.indicesTriangleFans = gl.createBuffer();
+	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indicesTriangleFans);
+	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices.triangleFan), gl.STATIC_DRAW);
+	/**/
 
 	[
 		{
@@ -241,10 +259,10 @@ function drawScene(points, colors, indices) {
 	// Here's where we call the routine that builds all the
 	// objects we'll be drawing.
 
-	gl.clearColor(0.0, 0.0, 0.0, 1.0);  // Clear to black, fully opaque
-	gl.clearDepth(1.0);                 // Clear everything
-	gl.enable(gl.DEPTH_TEST);           // Enable depth testing
-	gl.depthFunc(gl.LEQUAL);            // Near things obscure far things
+	gl.clearColor(1, 1, 1, 1);
+	gl.enable(gl.DEPTH_TEST);
+	gl.depthFunc(gl.GEQUAL);
+	gl.clearDepth(0);
 
 	// Clear the canvas before we start drawing on it.
 
@@ -297,8 +315,11 @@ function drawScene(points, colors, indices) {
 
 	{
 		// gl.drawArrays(gl.TRIANGLE_STRIP, 0, buffers['num-position'] / 3);
-		const vertexCount = 36;
-		gl.drawElements(gl.TRIANGLES, buffers['num-indices'], gl.UNSIGNED_SHORT, 0);
+		gl.drawElements(gl.TRIANGLES, buffers['num-indices.triangles'], gl.UNSIGNED_SHORT, 0);
+	}
+
+	{
+		gl.drawElements(gl.TRIANGLE_FAN, buffers['num-indices.triangleFans'], gl.UNSIGNED_SHORT, buffers['num-indices.triangles']);
 	}
 }
 
