@@ -9,15 +9,22 @@
 		this.color = color;
 		this.rotation = matrix.identity(3);
 		this.translation = new Array(3).fill(0);
-		this.points = [];
 		this.renderedPoints = [];
+		this.pointColors = [];
+		this.indices = {};
+		this.points = [];
 	}
 
 	Shape.prototype = {
-		// TODO: Pass Points to Buffer
 		render() {
-			if (this.renderedPoints.length === 0) {
+			// Only recalculate if necessary
+			if (this.renderedPoints.length === 0 || this.pointColors.length === 0) {
+				this.renderedPoints = [];
+				this.pointColors = [];
+
+				// Rotate and translate points from xy-plane into 3D space
 				this.points.forEach((point) => {
+					this.pointColors.push(this.color);
 					this.renderedPoints.push(
 						matrix.multiply(
 							matrix.multiply(
@@ -32,10 +39,7 @@
 					);
 				});
 			}
-
-			return {
-				points: this.renderedPoints,
-			};
+			return this;
 		},
 
 		rotate(yaw, pitch, roll) {
@@ -79,6 +83,8 @@
 			[x + height, y, 0],
 		];
 		this.indices = [].concat([0, 1, 2], [0, 2, 3]);
+
+		this.drawType = gl.TRIANGLES;
 	}
 	Square.prototype = {
 		__proto__: Shape.prototype,
@@ -88,7 +94,9 @@
 	function Circle(r, color) {
 		Shape.call(this, color);
 		this.points = [[0,0,0]];
-		this.indices = [];
+		this.indices = [0];
+
+		this.drawType = gl.TRIANGLE_FAN;
 
 		let i = 0;
 		for (let θ=0; θ<360; θ+=360/80) {
@@ -97,9 +105,9 @@
 				r * Math.sin(θ * Math.PI / 180),
 				0,
 			]);
-			if (i++ > 0) this.indices.push(0, i - 1, i);
+			this.indices.push(++i);
 		}
-		this.indices.push(0, 1, i);
+		this.indices.push(1);
 	}
 	Circle.prototype = {
 		__proto__: Shape.prototype,
@@ -115,20 +123,11 @@
 		},
 
 		draw() {
-			const points = [];
-			const colors = [];
-			let indices = [];
-			let indexOffset = 0;
+			const bufferData = [];
 			shapes.forEach((shape) => {
-				shape.render();
-				shape.renderedPoints.forEach((point, j) => {
-					colors.push(shape.color);
-					points.push(point);
-				});
-				indices = indices.concat(shape.indices.map(c => c + indexOffset));
-				indexOffset = points.length;
+				bufferData.push(shape.render());
 			});
-			WebGL.drawScene(points, colors, indices);
+			WebGL.drawScene(bufferData);
 			requestAnimationFrame(gfx.draw);
 		},
 	};
@@ -159,10 +158,10 @@ const ff = 15 * 16 + 15;
 
 const colors = [
 	[ff / ff, a0 / ff, ff / ff, 1],
-	[ff / ff, a0 / ff, a0 / ff, 1],
+	[a0 / ff, ff / ff, ff / ff, 1],
 	[ff / ff, ff / ff, a0 / ff, 1],
 	[a0 / ff, ff / ff, a0 / ff, 1],
-	[a0 / ff, ff / ff, ff / ff, 1],
+	[ff / ff, a0 / ff, a0 / ff, 1],
 	[a0 / ff, a0 / ff, ff / ff, 1],
 ];
 
@@ -175,15 +174,21 @@ const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(
 ));
 
 cube.forEach((face, i) => {
-	const theta = new Array(3).fill(0);
-	theta[i % 3] = 90;
-	face.rotate(...theta);
+	const θ = new Array(3).fill(0);
+	θ[i % 3] = 90;
+	face.rotate(...θ);
 
 	const translation = new Array(3).fill(0);
 	translation[2] = (-1) ** (i % 2) * 100;
 	face.translate(...translation);
 });
-const halo = new gfx.Circle(250, [1, 1, 1, 1]);
+
+const halo = new gfx.Circle(250, [
+	Number.parseInt('2e', 16) / ff,
+	Number.parseInt('8b', 16) / ff,
+	Number.parseInt('57', 16) / ff,
+	1.0,
+]);
 
 gfx.addShapes(...cube, halo);
 

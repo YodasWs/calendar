@@ -106,166 +106,14 @@ function loadShader(gl, type, source) {
 }
 
 //
-// initBuffers
-//
-// Initialize the buffers we'll need. For this demo, we just // have one object -- a simple three-dimensional cube.
-//
-function initBuffers(gl) {
-
-	// Create a buffer for the cube's vertex positions.
-
-	const positionBuffer = gl.createBuffer();
-
-	// Select the positionBuffer as the one to apply buffer
-	// operations to from here out.
-
-	gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-
-	// Now create an array of positions for the cube.
-
-	const positions = [
-		// Front face
-		-1.0, -1.0,  1.0,
-		1.0, -1.0,  1.0,
-		1.0,  1.0,  1.0,
-		-1.0,  1.0,  1.0,
-
-		// Back face
-		-1.0, -1.0, -1.0,
-		-1.0,  1.0, -1.0,
-		1.0,  1.0, -1.0,
-		1.0, -1.0, -1.0,
-
-		// Top face
-		-1.0,  1.0, -1.0,
-		-1.0,  1.0,  1.0,
-		1.0,  1.0,  1.0,
-		1.0,  1.0, -1.0,
-
-		// Bottom face
-		-1.0, -1.0, -1.0,
-		1.0, -1.0, -1.0,
-		1.0, -1.0,  1.0,
-		-1.0, -1.0,  1.0,
-
-		// Right face
-		1.0, -1.0, -1.0,
-		1.0,  1.0, -1.0,
-		1.0,  1.0,  1.0,
-		1.0, -1.0,  1.0,
-
-		// Left face
-		-1.0, -1.0, -1.0,
-		-1.0, -1.0,  1.0,
-		-1.0,  1.0,  1.0,
-		-1.0,  1.0, -1.0,
-	];
-
-	// Now pass the list of positions into WebGL to build the
-	// shape. We do this by creating a Float32Array from the
-	// JavaScript array, then use it to fill the current buffer.
-
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(positions), gl.STATIC_DRAW);
-
-	// Convert the array of colors into a table for all the vertices.
-
-	const faceColors = [];
-
-	colors.forEach((c) => {
-		faceColors.push(matrix.flatten([c, c, c, c]));
-	});
-
-	const colorBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(matrix.flatten(faceColors)), gl.STATIC_DRAW);
-
-	// Build the element array buffer; this specifies the indices
-	// into the vertex arrays for each face's vertices.
-
-	const indexBuffer = gl.createBuffer();
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-
-	// This array defines each face as two triangles, using the
-	// indices into the vertex array to specify each triangle's
-	// position.
-
-	const indices = [
-		0,  1,  2,      0,  2,  3,    // front
-		4,  5,  6,      4,  6,  7,    // back
-		8,  9,  10,     8,  10, 11,   // top
-		12, 13, 14,     12, 14, 15,   // bottom
-		16, 17, 18,     16, 18, 19,   // right
-		20, 21, 22,     20, 22, 23,   // left
-	];
-
-	// Now send the element array to GL
-
-	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices), gl.STATIC_DRAW);
-
-	return {
-		position: positionBuffer,
-		color: colorBuffer,
-		indices: indexBuffer,
-	};
-}
-
-//
 // Draw the scene.
 //
-function drawScene(points, colors, indices) {
-// function drawScene(bufferData)
-	// bufferData.forEach((buffer) => {
-		// TODO: Bind Buffers
-		// TODO: Add Buffer Data
-		// TODO: Use Program
-		// TODO: enableVertexAttribArray
-		// TODO: Set Uniforms
-		// TODO: gl.drawElements
-	// });
-	buffers = {};
-
-	buffers.indices = gl.createBuffer();
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
-	Object.entries(indices).forEach(([key, val]) => {
-		buffers[`num-indices.${key}`] = val.length;
-		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices[key]), gl.STATIC_DRAW);
-	});
-
-	/*
-	buffers['num-indices.triangleFans'] = indices.triangleFan.length;
-	buffers.indicesTriangleFans = gl.createBuffer();
-	gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indicesTriangleFans);
-	gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(indices.triangleFan), gl.STATIC_DRAW);
-	/**/
-
-	[
-		{
-			array: points,
-			key: 'position',
-		},
-		{
-			array: colors,
-			key: 'color',
-		},
-	].forEach((data) => {
-		const array = matrix.flatten(data.array);
-		const buffer = gl.createBuffer();
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(array), gl.STATIC_DRAW);
-		buffers[`num-${data.key}`] = array.length;
-		buffers[data.key] = buffer;
-	});
-
-	// Here's where we call the routine that builds all the
-	// objects we'll be drawing.
-
+function drawScene(bufferData) {
+	// Clear the canvas before we start drawing on it.
 	gl.clearColor(1, 1, 1, 1);
 	gl.enable(gl.DEPTH_TEST);
-	gl.depthFunc(gl.GEQUAL);
-	gl.clearDepth(0);
-
-	// Clear the canvas before we start drawing on it.
-
+	gl.depthFunc(gl.LEQUAL);
+	gl.clearDepth(1);
 	gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
 	// Perspective
@@ -279,48 +127,45 @@ function drawScene(points, colors, indices) {
 		]);
 	})();
 
-	// Tell WebGL how to pull out the positions from the position
-	// buffer into the vertexPosition attribute
-	{
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
-		gl.vertexAttribPointer(
-			programInfo.attribLocations.vertexPosition,
-			3, // number of bytes per point
-			gl.FLOAT, false, 0, 0);
-		gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
-	}
+	bufferData.forEach((buffer) => {
+		const buffers = {
+			indices: gl.createBuffer(),
+			colors: gl.createBuffer(),
+			points: gl.createBuffer(),
+		};
 
-	// Tell WebGL how to pull out the colors from the color buffer
-	// into the vertexColor attribute.
-	{
-		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.color);
+		// Set Colors Buffer
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.colors);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(matrix.flatten(buffer.pointColors)), gl.STATIC_DRAW);
 		gl.vertexAttribPointer(
 			programInfo.attribLocations.vertexColor,
 			4, // number of bytes per color
 			gl.FLOAT, false, 0, 0);
 		gl.enableVertexAttribArray(programInfo.attribLocations.vertexColor);
-	}
 
-	// Tell WebGL which indices to use to index the vertices
-	// gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
+		// Set Vertices Buffer
+		gl.bindBuffer(gl.ARRAY_BUFFER, buffers.points);
+		gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(matrix.flatten(buffer.renderedPoints)), gl.STATIC_DRAW);
+		gl.vertexAttribPointer(
+			programInfo.attribLocations.vertexPosition,
+			3, // number of bytes per point
+			gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(programInfo.attribLocations.vertexPosition);
 
-	// Tell WebGL to use our program when drawing
+		// Set Indices Buffer
+		gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
+		gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(buffer.indices), gl.STATIC_DRAW);
 
-	gl.useProgram(programInfo.program);
+		// Tell WebGL to use our program when drawing
+		gl.useProgram(programInfo.program);
 
-	// Set the shader uniforms
+		// Set Uniform Matrices
+		gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
+		gl.uniformMatrix4fv(programInfo.uniformLocations.cameraMatrix, false, cameraMatrix);
 
-	gl.uniformMatrix4fv(programInfo.uniformLocations.projectionMatrix, false, projectionMatrix);
-	gl.uniformMatrix4fv(programInfo.uniformLocations.cameraMatrix, false, cameraMatrix);
-
-	{
-		// gl.drawArrays(gl.TRIANGLE_STRIP, 0, buffers['num-position'] / 3);
-		gl.drawElements(gl.TRIANGLES, buffers['num-indices.triangles'], gl.UNSIGNED_SHORT, 0);
-	}
-
-	{
-		gl.drawElements(gl.TRIANGLE_FAN, buffers['num-indices.triangleFans'], gl.UNSIGNED_SHORT, buffers['num-indices.triangles']);
-	}
+		// TODO: gl.drawElements
+		gl.drawElements(buffer.drawType, buffer.indices.length, gl.UNSIGNED_SHORT, 0);
+	});
 }
 
 //
@@ -334,9 +179,7 @@ function rotateCamera(x, y, z) {
 }
 
 return {
-	initShaderProgram,
 	rotateCamera,
-	initBuffers,
 	drawScene,
 	init,
 }
