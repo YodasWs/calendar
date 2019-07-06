@@ -101,9 +101,9 @@
 			[x + height, y + height, 0],
 			[x + height, y, 0],
 		];
-		this.indices = [].concat([0, 1, 2], [0, 2, 3]);
+		this.indices = [1, 0, 2, 3];
 
-		this.drawType = gl.TRIANGLES;
+		this.drawType = gl.TRIANGLE_STRIP;
 	}
 	Square.prototype = {
 		__proto__: Shape.prototype,
