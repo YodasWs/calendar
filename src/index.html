@@ -36,7 +36,7 @@ const gfx = (function() {
 		this.renderedNormals = [];
 		this.renderedPoints = [];
 		this.pointColors = [];
-		this.indices = {};
+		this.indices = [];
 		this.normals = [];
 		this.points = [];
 	}
@@ -136,6 +136,27 @@ const gfx = (function() {
 		constructor: Square,
 	};
 
+	function Circle(r, thickness, color) {
+		Shape.call(this, color);
+
+		this.drawType = gl.TRIANGLE_STRIP;
+
+		let i = 0;
+		for (let θ=0; θ<360; θ+=360/80) {
+			this.points.push([
+				(r + (-1) ** (i % 2) * thickness) * Math.cos(θ * Math.PI / 180),
+				(r + (-1) ** (i % 2) * thickness) * Math.sin(θ * Math.PI / 180),
+				0,
+			]);
+			this.indices.push(i++);
+		}
+		this.indices.push(0, 1);
+	}
+	Circle.prototype = {
+		__proto__: Shape.prototype,
+		constructor: Circle,
+	};
+
 	function Disc(r, color) {
 		Shape.call(this, color);
 		this.points = [[0,0,0]];
@@ -160,6 +181,7 @@ const gfx = (function() {
 	};
 
 	return {
+		Circle,
 		Square,
 		Disc,
 
@@ -252,6 +274,18 @@ cube.forEach((face, i) => {
 });
 gfx.addShapes(...cube);
 
+const halo = new Array(2).fill(0).map(() => new gfx.Circle(250, 10, [
+	Number.parseInt('2e', 16) / ff,
+	Number.parseInt('8b', 16) / ff,
+	Number.parseInt('57', 16) / ff,
+	1.0,
+]));
+halo[0].translate(0, 0, 0.01);
+halo[1].translate(0, 0, -0.01);
+halo[1].rotate(0, 180, 0);
+gfx.addShapes(...halo);
+
+/*
 [0, 1, 2].forEach((i) => {
 	const halo = new Array(2).fill(0).map(() => new gfx.Disc(250, [
 		Number.parseInt('2e', 16) / ff,
@@ -282,6 +316,7 @@ gfx.addShapes(...cube);
 
 	gfx.addShapes(...halo);
 });
+/**/
 
 /***********************************************************************************/
 // All code below here is from MDN's WebGL Tutorial
