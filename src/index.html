@@ -11,10 +11,14 @@
 <h1>3D Graphics!</h1>
 <canvas width="640" height="480"></canvas>
 <form>
-	<h2>Rotation</h2>
+	<h2>Camera Rotation</h2>
 	<label><input id="radx" type="range" min="-180" max="180" value="45"/><output>45</output></label>
 	<label><input id="rady" type="range" min="0" max="360" value="35"/><output>35</output></label>
 	<label><input id="radz" type="range" min="-180" max="180" value="0"/><output>0</output></label>
+	<h2>Light Rotation</h2>
+	<label><input id="lightx" type="range" min="0" max="360" value="45"/><output>45</output></label>
+	<label><input id="lighty" type="range" min="0" max="360" value="35"/><output>35</output></label>
+	<label><input id="lightz" type="range" min="0" max="360" value="0"/><output>0</output></label>
 </form>
 <script>
 
@@ -53,7 +57,8 @@ const gfx = (function() {
 				// Rotate and translate points from xy-plane into 3D space
 				this.points.forEach((point) => {
 					this.pointColors.push(this.color);
-					// this.renderedNormals.push(normal);
+					this.renderedNormals.push(normal);
+					/*
 					this.renderedNormals.push(
 						matrix.multiply(
 							this.rotation,
@@ -64,6 +69,7 @@ const gfx = (function() {
 							],
 						),
 					);
+					/**/
 					this.renderedPoints.push(
 						matrix.multiply(
 								matrix.add(
@@ -184,6 +190,18 @@ document.getElementById('rady').addEventListener('input', rotateCamera);
 document.getElementById('radz').addEventListener('input', rotateCamera);
 rotateCamera();
 
+function rotateLight() {
+	WebGL.rotateLight(
+		Number.parseInt(document.getElementById('lightx').value, 10),
+		Number.parseInt(document.getElementById('lighty').value, 10),
+		Number.parseInt(document.getElementById('lightz').value, 10),
+	);
+}
+document.getElementById('lightx').addEventListener('input', rotateLight);
+document.getElementById('lighty').addEventListener('input', rotateLight);
+document.getElementById('lightz').addEventListener('input', rotateLight);
+rotateLight();
+
 function showNumbers(e) {
 	e.target.closest('label').querySelector('output').innerText = e.target.value;
 }
@@ -196,12 +214,12 @@ const f0 = 15 * 16 +  0;
 const ff = 15 * 16 + 15;
 
 const colors = [
-	[ff / ff, a0 / ff, ff / ff, 1],
-	[a0 / ff, ff / ff, ff / ff, 1],
-	[ff / ff, ff / ff, a0 / ff, 1],
-	[a0 / ff, ff / ff, a0 / ff, 1],
-	[ff / ff, a0 / ff, a0 / ff, 1],
-	[a0 / ff, a0 / ff, ff / ff, 1],
+	[ff / ff, a0 / ff, ff / ff, 1], // magenta
+	[a0 / ff, ff / ff, ff / ff, 1], // cyan
+	[ff / ff, ff / ff, a0 / ff, 1], // yellow
+	[a0 / ff, ff / ff, a0 / ff, 1], // green
+	[ff / ff, a0 / ff, a0 / ff, 1], // red
+	[a0 / ff, a0 / ff, ff / ff, 1], // blue
 ];
 
 const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(
