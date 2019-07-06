@@ -31,9 +31,16 @@
 				);
 
 				// Rotate and translate points from xy-plane into 3D space
-				this.points.forEach((point) => {
+				this.points.forEach((point, i) => {
 					this.pointColors.push(this.color);
-					this.renderedNormals.push(normal);
+					if (this.normals.length === 0) {
+						this.renderedNormals.push(normal);
+					} else {
+						this.renderedNormals.push(matrix.multiply(
+							this.rotation,
+							matrix.form2dCol(this.normals[i] || [0, 0, 1]),
+						));
+					}
 					/*
 					this.renderedNormals.push(
 						matrix.multiply(
@@ -156,10 +163,39 @@
 		constructor: Disc,
 	};
 
+	function Ring(r, thickness, color, inward = false) {
+		Shape.call(this, color);
+
+		this.drawType = gl.TRIANGLE_STRIP;
+
+		// TODO: Normals need to point outward, not up
+
+		let i = 0;
+		for (let θ=0; θ<360; θ+=360/80) {
+			this.points.push([
+				r * Math.cos(θ * Math.PI / 180),
+				r * Math.sin(θ * Math.PI / 180),
+				(-1) ** (i % 2) * thickness,
+			]);
+			this.normals.push([
+				Math.cos(θ * Math.PI / 180 + (inward ? 0 : Math.PI)),
+				Math.sin(θ * Math.PI / 180 + (inward ? 0 : Math.PI)),
+				0,
+			]);
+			this.indices.push(i++);
+		}
+		this.indices.push(0, 1);
+	}
+	Ring.prototype = {
+		__proto__: Shape.prototype,
+		constructor: Ring,
+	};
+
 	return {
 		Circle,
 		Square,
 		Disc,
+		Ring,
 
 		addShapes(...shape) {
 			shapes.push(...shape)
@@ -250,6 +286,15 @@ cube.forEach((face, i) => {
 });
 gfx.addShapes(...cube);
 
+const halo = new Array(2).fill(0).map((z, i) => new gfx.Ring(250 + (-1) ** (i % 2) * 0.01, 10, [
+	Number.parseInt('2e', 16) / ff,
+	Number.parseInt('8b', 16) / ff,
+	Number.parseInt('57', 16) / ff,
+	1.0,
+], !i));
+gfx.addShapes(...halo);
+
+/*
 const halo = new Array(2).fill(0).map(() => new gfx.Circle(250, 10, [
 	Number.parseInt('2e', 16) / ff,
 	Number.parseInt('8b', 16) / ff,
@@ -261,7 +306,6 @@ halo[1].translate(0, 0, -0.01);
 halo[1].rotate(0, 180, 0);
 gfx.addShapes(...halo);
 
-/*
 [0, 1, 2].forEach((i) => {
 	const halo = new Array(2).fill(0).map(() => new gfx.Disc(250, [
 		Number.parseInt('2e', 16) / ff,
