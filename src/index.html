@@ -339,10 +339,10 @@ cube.forEach((face, i) => {
 });
 gfx.addShapes(...cube);
 /**/
-const cone = new Array(2).fill(0).map((z, i) => new gfx.Cone(250 + (-1) ** (i % 2) * 0.01, 200, colors[i], !i));
-cone.forEach((c) => {
+const cone = new Array(2).fill(0).map((z, i) => new gfx.Cone(250, 100, colors[i], !i));
+cone.forEach((c, i) => {
 	c.rotate(0, 0, 0);
-	c.translate(0, 0, 0);
+	c.translate(0, 0, (-1) ** (i % 2) * 0.01);
 });
 gfx.addShapes(...cone);
 
