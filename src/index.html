@@ -180,10 +180,34 @@ const gfx = (function() {
 		constructor: Disc,
 	};
 
+	function Ring(r, thickness, color) {
+		Shape.call(this, color);
+
+		this.drawType = gl.TRIANGLE_STRIP;
+
+		// TODO: Normals need to point outward, not up
+
+		let i = 0;
+		for (let θ=0; θ<360; θ+=360/80) {
+			this.points.push([
+				r * Math.cos(θ * Math.PI / 180),
+				r * Math.sin(θ * Math.PI / 180),
+				(-1) ** (i % 2) * thickness,
+			]);
+			this.indices.push(i++);
+		}
+		this.indices.push(0, 1);
+	}
+	Ring.prototype = {
+		__proto__: Shape.prototype,
+		constructor: Ring,
+	};
+
 	return {
 		Circle,
 		Square,
 		Disc,
+		Ring,
 
 		addShapes(...shape) {
 			shapes.push(...shape)
