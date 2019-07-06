@@ -130,7 +130,7 @@ const gfx = (function() {
 		constructor: Square,
 	};
 
-	function Circle(r, color) {
+	function Disc(r, color) {
 		Shape.call(this, color);
 		this.points = [[0,0,0]];
 		this.indices = [0];
@@ -148,14 +148,14 @@ const gfx = (function() {
 		}
 		this.indices.push(1);
 	}
-	Circle.prototype = {
+	Disc.prototype = {
 		__proto__: Shape.prototype,
-		constructor: Circle,
+		constructor: Disc,
 	};
 
 	return {
-		Circle,
 		Square,
+		Disc,
 
 		addShapes(...shape) {
 			shapes.push(...shape)
@@ -223,7 +223,7 @@ cube.forEach((face, i) => {
 	face.translate(...translation);
 });
 
-const halo = new Array(2).fill(0).map(() => new gfx.Circle(250, [
+const halo = new Array(2).fill(0).map(() => new gfx.Disc(250, [
 	Number.parseInt('2e', 16) / ff,
 	Number.parseInt('8b', 16) / ff,
 	Number.parseInt('57', 16) / ff,
