@@ -168,8 +168,6 @@
 
 		this.drawType = gl.TRIANGLE_STRIP;
 
-		// TODO: Normals need to point outward, not up
-
 		let i = 0;
 		for (let θ=0; θ<360; θ+=360/80) {
 			this.points.push([
@@ -191,9 +189,39 @@
 		constructor: Ring,
 	};
 
+	function Cone(r, height, color, inward = false) {
+		Shape.call(this, color);
+
+		this.drawType = gl.TRIANGLE_FAN;
+		this.points = [[0, 0, height]];
+		this.normals = [[0, 0, inward ? 1 : -1]];
+		this.indices = [0];
+
+		let i = 0;
+		for (let θ=0; θ<360; θ+=360/80) {
+			this.points.push([
+				r * Math.cos(θ * Math.PI / 180),
+				r * Math.sin(θ * Math.PI / 180),
+				0,
+			]);
+			this.normals.push([
+				Math.cos(θ * Math.PI / 180 + (inward ? 0 : Math.PI)),
+				Math.sin(θ * Math.PI / 180 + (inward ? 0 : Math.PI)),
+				0,
+			]);
+			this.indices.push(++i);
+		}
+		this.indices.push(1);
+	}
+	Cone.prototype = {
+		__proto__: Shape.prototype,
+		constructor: Cone,
+	};
+
 	return {
 		Circle,
 		Square,
+		Cone,
 		Disc,
 		Ring,
 
@@ -256,6 +284,7 @@ const colors = [
 	[a0 / ff, a0 / ff, ff / ff, 1], // blue
 ];
 
+/*
 const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(
 	-100,
 	-100,
@@ -285,6 +314,13 @@ cube.forEach((face, i) => {
 	face.translate(...translation);
 });
 gfx.addShapes(...cube);
+/**/
+const cone = new Array(2).fill(0).map((z, i) => new gfx.Cone(250 + (-1) ** (i % 2) * 0.01, 200, colors[i], !i));
+cone.forEach((c) => {
+	c.rotate(0, 0, 0);
+	c.translate(0, 0, 0);
+});
+gfx.addShapes(...cone);
 
 const halo = new Array(2).fill(0).map((z, i) => new gfx.Ring(250 + (-1) ** (i % 2) * 0.01, 10, [
 	Number.parseInt('2e', 16) / ff,
