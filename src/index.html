@@ -233,25 +233,55 @@ const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(
 cube.forEach((face, i) => {
 	const θ = new Array(3).fill(0);
 	θ[i % 3] = 90;
-	θ[1] += i % 2 * 180
+
+	switch (i) {
+		case 1:
+		case 2:
+		case 3:
+			θ[1] += 180;
+			break;
+		case 2:
+		case 5:
+			θ[2] += 180;
+	}
 	face.rotate(...θ);
 
 	const translation = new Array(3).fill(0);
 	translation[(i + 2) % 3] = (-1) ** (i % 2) * 100;
 	face.translate(...translation);
 });
+gfx.addShapes(...cube);
 
-const halo = new Array(2).fill(0).map(() => new gfx.Disc(250, [
-	Number.parseInt('2e', 16) / ff,
-	Number.parseInt('8b', 16) / ff,
-	Number.parseInt('57', 16) / ff,
-	1.0,
-]));
-halo[0].translate(0, 0, 0.01);
-halo[1].translate(0, 0, -0.01);
-halo[1].rotate(0, 180, 0);
+[0, 1, 2].forEach((i) => {
+	const halo = new Array(2).fill(0).map(() => new gfx.Disc(250, [
+		Number.parseInt('2e', 16) / ff,
+		Number.parseInt('8b', 16) / ff,
+		Number.parseInt('57', 16) / ff,
+		1.0,
+	]));
 
-gfx.addShapes(...cube, ...halo);
+	switch (i) {
+		case 0:
+			halo[0].translate(0, 0, 0.01);
+			halo[1].translate(0, 0, -0.01);
+			halo[1].rotate(0, 180, 0);
+			break;
+		case 1:
+			halo[0].translate(0.01, 0, 0);
+			halo[1].translate(-0.01, 0, 0);
+			halo[0].rotate(0, 90, 0);
+			halo[1].rotate(0, 270, 0);
+			break;
+		case 2:
+			halo[0].translate(0, 0.01, 0);
+			halo[1].translate(0, -0.01, 0);
+			halo[0].rotate(0, 0, 90);
+			halo[1].rotate(0, 0, 270);
+			break;
+	}
+
+	gfx.addShapes(...halo);
+});
 
 /***********************************************************************************/
 // All code below here is from MDN's WebGL Tutorial

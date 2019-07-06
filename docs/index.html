@@ -1,4 +1,4 @@
-<!doctype html><html lang="en-US"><head><meta charset="utf-8"/><title>3D Graphics!</title><link rel="stylesheet" href="index.css"/><script src="matrix.js"></script><script src="webgl.js"></script></head><body><h1>3D Graphics!</h1><canvas width="640" height="480"></canvas><form><h2>Rotation</h2><label><input id="radx" type="range" min="-180" max="180" value="45"/><output>45</output></label> <label><input id="rady" type="range" min="0" max="360" value="35"/><output>35</output></label> <label><input id="radz" type="range" min="-180" max="180" value="0"/><output>0</output></label></form><script>const gfx = (function() {
+<!doctype html><html lang="en-US"><head><meta charset="utf-8"/><title>3D Graphics!</title><link rel="stylesheet" href="index.css"/><script src="matrix.js"></script><script src="webgl.js"></script></head><body><h1>3D Graphics!</h1><canvas width="640" height="480"></canvas><form><h2>Camera Rotation</h2><label><input id="radx" type="range" min="-180" max="180" value="45"/><output>45</output></label> <label><input id="rady" type="range" min="0" max="360" value="35"/><output>35</output></label> <label><input id="radz" type="range" min="-180" max="180" value="0"/><output>0</output></label><h2>Light Rotation</h2><label><input id="lightx" type="range" min="0" max="360" value="45"/><output>45</output></label> <label><input id="lighty" type="range" min="0" max="360" value="35"/><output>35</output></label> <label><input id="lightz" type="range" min="0" max="360" value="0"/><output>0</output></label></form><script>const gfx = (function() {
 	const canvas = document.querySelector('canvas');
 	const gl = canvas.getContext('webgl');
 
@@ -33,7 +33,8 @@
 				// Rotate and translate points from xy-plane into 3D space
 				this.points.forEach((point) => {
 					this.pointColors.push(this.color);
-					// this.renderedNormals.push(normal);
+					this.renderedNormals.push(normal);
+					/*
 					this.renderedNormals.push(
 						matrix.multiply(
 							this.rotation,
@@ -44,6 +45,7 @@
 							],
 						),
 					);
+					/**/
 					this.renderedPoints.push(
 						matrix.multiply(
 								matrix.add(
@@ -164,6 +166,18 @@ document.getElementById('rady').addEventListener('input', rotateCamera);
 document.getElementById('radz').addEventListener('input', rotateCamera);
 rotateCamera();
 
+function rotateLight() {
+	WebGL.rotateLight(
+		Number.parseInt(document.getElementById('lightx').value, 10),
+		Number.parseInt(document.getElementById('lighty').value, 10),
+		Number.parseInt(document.getElementById('lightz').value, 10),
+	);
+}
+document.getElementById('lightx').addEventListener('input', rotateLight);
+document.getElementById('lighty').addEventListener('input', rotateLight);
+document.getElementById('lightz').addEventListener('input', rotateLight);
+rotateLight();
+
 function showNumbers(e) {
 	e.target.closest('label').querySelector('output').innerText = e.target.value;
 }
@@ -176,12 +190,12 @@ const f0 = 15 * 16 +  0;
 const ff = 15 * 16 + 15;
 
 const colors = [
-	[ff / ff, a0 / ff, ff / ff, 1],
-	[a0 / ff, ff / ff, ff / ff, 1],
-	[ff / ff, ff / ff, a0 / ff, 1],
-	[a0 / ff, ff / ff, a0 / ff, 1],
-	[ff / ff, a0 / ff, a0 / ff, 1],
-	[a0 / ff, a0 / ff, ff / ff, 1],
+	[ff / ff, a0 / ff, ff / ff, 1], // magenta
+	[a0 / ff, ff / ff, ff / ff, 1], // cyan
+	[ff / ff, ff / ff, a0 / ff, 1], // yellow
+	[a0 / ff, ff / ff, a0 / ff, 1], // green
+	[ff / ff, a0 / ff, a0 / ff, 1], // red
+	[a0 / ff, a0 / ff, ff / ff, 1], // blue
 ];
 
 const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(
@@ -195,25 +209,55 @@ const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(
 cube.forEach((face, i) => {
 	const θ = new Array(3).fill(0);
 	θ[i % 3] = 90;
-	θ[1] += i % 2 * 180
+
+	switch (i) {
+		case 1:
+		case 2:
+		case 3:
+			θ[1] += 180;
+			break;
+		case 2:
+		case 5:
+			θ[2] += 180;
+	}
 	face.rotate(...θ);
 
 	const translation = new Array(3).fill(0);
 	translation[(i + 2) % 3] = (-1) ** (i % 2) * 100;
 	face.translate(...translation);
 });
+gfx.addShapes(...cube);
 
-const halo = new Array(2).fill(0).map(() => new gfx.Disc(250, [
-	Number.parseInt('2e', 16) / ff,
-	Number.parseInt('8b', 16) / ff,
-	Number.parseInt('57', 16) / ff,
-	1.0,
-]));
-halo[0].translate(0, 0, 0.01);
-halo[1].translate(0, 0, -0.01);
-halo[1].rotate(0, 180, 0);
+[0, 1, 2].forEach((i) => {
+	const halo = new Array(2).fill(0).map(() => new gfx.Disc(250, [
+		Number.parseInt('2e', 16) / ff,
+		Number.parseInt('8b', 16) / ff,
+		Number.parseInt('57', 16) / ff,
+		1.0,
+	]));
 
-gfx.addShapes(...cube, ...halo);
+	switch (i) {
+		case 0:
+			halo[0].translate(0, 0, 0.01);
+			halo[1].translate(0, 0, -0.01);
+			halo[1].rotate(0, 180, 0);
+			break;
+		case 1:
+			halo[0].translate(0.01, 0, 0);
+			halo[1].translate(-0.01, 0, 0);
+			halo[0].rotate(0, 90, 0);
+			halo[1].rotate(0, 270, 0);
+			break;
+		case 2:
+			halo[0].translate(0, 0.01, 0);
+			halo[1].translate(0, -0.01, 0);
+			halo[0].rotate(0, 0, 90);
+			halo[1].rotate(0, 0, 270);
+			break;
+	}
+
+	gfx.addShapes(...halo);
+});
 
 /***********************************************************************************/
 // All code below here is from MDN's WebGL Tutorial
