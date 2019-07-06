@@ -59,10 +59,14 @@ function initShaderProgram(gl) {
 		varying highp vec3 vTransformedNormal;
 
 		void main(void) {
+			// Each Point's Projected Position
 			gl_Position = uProjectionMatrix * uCameraMatrix * aVertexPosition;
+
 			vColor = aVertexColor;
 
+			// Undo Camera Rotation to keep Lighting in constant position
 			vTransformedNormal = normalize(mat3(uNormalMatrix) * aVertexNormal);
+
 			vDirectionalVector = normalize(uLightMatrix * vec3(0, 0, 1));
 		}
 	`;
@@ -75,15 +79,13 @@ function initShaderProgram(gl) {
 		varying highp vec3 vDirectionalVector;
 
 		highp vec3 ambientLight = vec3(0.3, 0.3, 0.3);
+		highp vec3 directionalLightColor = vec3(1, 1, 1);
 
 		void main(void) {
-			highp vec3 directionalLightColor = vec3(1, 1, 1);
-			highp vec3 directionalVector = vec3(1, 0, 1);
-
+			// Directional Light
 			highp float directional = max(dot(vTransformedNormal.xyz, vDirectionalVector), 0.0);
-
+			// Apply Lighting on Vertex's Color
 			highp vec3 vLighting = ambientLight + (directionalLightColor * directional);
-
 			gl_FragColor = vColor * vec4(vLighting, 1.0);
 		}
 	`;
@@ -220,6 +222,7 @@ function rotateCamera(x, y, z) {
 		[0, 0, 0, 1],
 	]);
 
+	// Undo Camera Rotation to keep Lighting in constant position
 	normalMatrix = matrix.flatten(matrix.inverseTranspose(cameraMatrix));
 }
 
