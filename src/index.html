@@ -12,12 +12,14 @@
 <canvas width="640" height="480"></canvas>
 <form>
 	<h2>Camera Rotation</h2>
-	<label><input id="radx" type="range" min="-180" max="180" value="45"/><output>45</output></label>
+	<label><input id="radx" type="range" min="0" max="360" value="45"/><output>45</output></label>
 	<label><input id="rady" type="range" min="0" max="360" value="35"/><output>35</output></label>
-	<label><input id="radz" type="range" min="-180" max="180" value="0"/><output>0</output></label>
+	<label><input id="radz" type="range" min="0" max="360" value="0"/><output>0</output></label>
+	<h2>Zoom</h2>
+	<label><input id="zoom" type="range" min="1" max="100" value="10"/><output>10</output></label>
 	<h2>Light Rotation</h2>
-	<label><input id="lightx" type="range" min="0" max="360" value="45"/><output>45</output></label>
-	<label><input id="lighty" type="range" min="0" max="360" value="35"/><output>35</output></label>
+	<label><input id="lightx" type="range" min="0" max="360" value="36"/><output>36</output></label>
+	<label><input id="lighty" type="range" min="0" max="360" value="72"/><output>72</output></label>
 	<label><input id="lightz" type="range" min="0" max="360" value="0"/><output>0</output></label>
 </form>
 <script>
@@ -250,7 +252,7 @@ const gfx = (function() {
 		this.normals = [];
 		this.points = [];
 
-		const n = 50;
+		const n = 55;
 		let i = 0;
 		for (let α=0; α<=180; α+=180/n) {
 			let j = 0;
@@ -331,6 +333,14 @@ document.getElementById('lightx').addEventListener('input', rotateLight);
 document.getElementById('lighty').addEventListener('input', rotateLight);
 document.getElementById('lightz').addEventListener('input', rotateLight);
 rotateLight();
+
+function zoom() {
+	WebGL.zoom(
+		Number.parseInt(document.getElementById('zoom').value, 10),
+	);
+}
+document.getElementById('zoom').addEventListener('input', zoom);
+zoom();
 
 function showNumbers(e) {
 	e.target.closest('label').querySelector('output').innerText = e.target.value;
@@ -448,18 +458,10 @@ gfx.addShapes(...halo);
 });
 /**/
 
-/***********************************************************************************/
-// All code below here is from MDN's WebGL Tutorial
-// https://github.com/mdn/webgl-examples/blob/gh-pages/tutorial/sample5/webgl-demo.js
-
-//
-// Start here
-//
 (() => {
 	const canvas = document.querySelector('canvas');
 
 	// If we don't have a GL context, give up now
-
 	if (!canvas.getContext('webgl')) {
 		console.error('Unable to initialize WebGL. Your browser or machine may not support it.');
 		return;

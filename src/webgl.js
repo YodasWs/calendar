@@ -4,6 +4,7 @@
 
 const WebGL = (function() {
 
+	let S;
 	let gl;
 	let programInfo;
 	let shaderProgram;
@@ -148,11 +149,10 @@ function drawScene(bufferData) {
 
 	// Perspective
 	const projectionMatrix = (() => {
-		const S = 2;
 		return matrix.flatten([
 			[S * gl.canvas.height / gl.canvas.width, 0, 0, 0],
 			[0, S, 0, 0],
-			[0, 0, -1 / 2, 0],
+			[0, 0, -1, 0],
 			[0, 0, 0, 1],
 		]);
 	})();
@@ -230,11 +230,16 @@ function rotateLight(x, y, z) {
 	dLightMatrix = matrix.flatten(matrix.axonometric(x, y, z));
 }
 
+function zoom(z) {
+	S = 10 / z;
+}
+
 return {
 	rotateCamera,
 	rotateLight,
 	drawScene,
 	init,
+	zoom,
 }
 
 })();
