@@ -242,8 +242,52 @@ const gfx = (function() {
 		constructor: Cone,
 	};
 
+	function Sphere(r, color) {
+		Shape.call(this, color);
+
+		this.drawType = gl.TRIANGLE_STRIP;
+		this.indices = [];
+		this.normals = [];
+		this.points = [];
+
+		const n = 50;
+		let i = 0;
+		for (let α=0; α<=180; α+=180/n) {
+			let j = 0;
+			const k = this.points.length;
+			const m = α === 0 || α === 180 ? 1 : n;
+			for (let θ=0; θ<360; θ+=360/m) {
+				if (α !== 180 || (α === 180 && θ === 0)) {
+					this.points.push([
+						r * Math.sin(α * Math.PI / 180) * Math.cos(θ * Math.PI / 180),
+						r * Math.sin(α * Math.PI / 180) * Math.sin(θ * Math.PI / 180),
+						r * Math.cos(α * Math.PI / 180),
+					]);
+					this.normals.push([
+						Math.sin(α * Math.PI / 180) * Math.cos(θ * Math.PI / 180),
+						Math.sin(α * Math.PI / 180) * Math.sin(θ * Math.PI / 180),
+						Math.cos(α * Math.PI / 180),
+					]);
+				}
+				this.indices.push(i);
+				this.indices.push(Math.max(++i - m, 0));
+				if (α === 180) {
+					for (let l = 1; l<n+2; l++) {
+						this.indices.push(this.points.length - l);
+						this.indices.push(this.points.length - 1);
+					}
+				}
+			}
+		}
+	}
+	Sphere.prototype = {
+		__proto__: Shape.prototype,
+		constructor: Sphere,
+	};
+
 	return {
 		Circle,
+		Sphere,
 		Square,
 		Cone,
 		Disc,
@@ -308,6 +352,10 @@ const colors = [
 	[a0 / ff, a0 / ff, ff / ff, 1], // blue
 ];
 
+const sphere = new gfx.Sphere(350, colors[3]);
+gfx.addShapes(sphere);
+console.log('Sphere:', sphere.points);
+
 /*
 const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(
 	-100,
@@ -338,14 +386,15 @@ cube.forEach((face, i) => {
 	face.translate(...translation);
 });
 gfx.addShapes(...cube);
-/**/
-const cone = new Array(2).fill(0).map((z, i) => new gfx.Cone(250, 100, colors[i], !i));
+const cone = new Array(2).fill(0).map((z, i) => new gfx.Cone(250, 90, colors[i * 3], !i));
 cone.forEach((c, i) => {
 	c.rotate(0, 0, 0);
-	c.translate(0, 0, (-1) ** (i % 2) * 0.01);
+	c.translate(0, 0, (-1) ** (i % 2) * 10);
 });
 gfx.addShapes(...cone);
+/**/
 
+/*
 const halo = new Array(2).fill(0).map((z, i) => new gfx.Ring(250 + (-1) ** (i % 2) * 0.01, 10, [
 	Number.parseInt('2e', 16) / ff,
 	Number.parseInt('8b', 16) / ff,
@@ -353,6 +402,7 @@ const halo = new Array(2).fill(0).map((z, i) => new gfx.Ring(250 + (-1) ** (i % 
 	1.0,
 ], !i));
 gfx.addShapes(...halo);
+/**/
 
 /*
 const halo = new Array(2).fill(0).map(() => new gfx.Circle(250, 10, [
