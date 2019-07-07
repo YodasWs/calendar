@@ -299,13 +299,27 @@ const gfx = (function() {
 			shapes.push(...shape)
 		},
 
-		draw() {
+		draw(now) {
 			const bufferData = [];
 			shapes.forEach((shape) => {
 				bufferData.push(shape.render());
 			});
 			WebGL.drawScene(bufferData);
 			requestAnimationFrame(gfx.draw);
+			now /= 10;
+			now %= 360;
+			moon.translate(
+				...matrix.flatten(
+					matrix.multiply(
+						matrix.axonometric(0, -36, 0),
+						matrix.form2dCol([
+							450 * Math.cos(now * Math.PI / 180),
+							450 * Math.sin(now * Math.PI / 180),
+							0,
+						]),
+					),
+				),
+			);
 		},
 	};
 })();
@@ -362,9 +376,23 @@ const colors = [
 	[a0 / ff, a0 / ff, ff / ff, 1], // blue
 ];
 
-const sphere = new gfx.Sphere(350, colors[3]);
-gfx.addShapes(sphere);
-console.log('Sphere:', sphere.points);
+const earth = new gfx.Sphere(150, colors[3]);
+gfx.addShapes(earth);
+
+const moon = new gfx.Sphere(100, colors[5]);
+gfx.addShapes(moon);
+moon.translate(450, 0, 0);
+
+const moonOrbit = new Array(2).fill(0).map((f, i) => new gfx.Ring(
+	450 + (-1) ** (i % 2) * 0.01,
+	5,
+	colors[0],
+	!i,
+));
+gfx.addShapes(...moonOrbit);
+moonOrbit.forEach((c, i) => {
+	c.rotate(0, 36, 0);
+});
 
 /*
 const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(

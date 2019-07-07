@@ -1,4 +1,4 @@
-<!doctype html><html lang="en-US"><head><meta charset="utf-8"/><title>3D Graphics!</title><link rel="stylesheet" href="index.css"/><script src="matrix.js"></script><script src="webgl.js"></script></head><body><h1>3D Graphics!</h1><canvas width="640" height="480"></canvas><form><h2>Camera Rotation</h2><label><input id="radx" type="range" min="-180" max="180" value="45"/><output>45</output></label> <label><input id="rady" type="range" min="0" max="360" value="35"/><output>35</output></label> <label><input id="radz" type="range" min="-180" max="180" value="0"/><output>0</output></label><h2>Light Rotation</h2><label><input id="lightx" type="range" min="0" max="360" value="45"/><output>45</output></label> <label><input id="lighty" type="range" min="0" max="360" value="35"/><output>35</output></label> <label><input id="lightz" type="range" min="0" max="360" value="0"/><output>0</output></label></form><script>const gfx = (function() {
+<!doctype html><html lang="en-US"><head><meta charset="utf-8"/><title>3D Graphics!</title><link rel="stylesheet" href="index.css"/><script src="matrix.js"></script><script src="webgl.js"></script></head><body><h1>3D Graphics!</h1><canvas width="640" height="480"></canvas><form><h2>Camera Rotation</h2><label><input id="radx" type="range" min="0" max="360" value="45"/><output>45</output></label> <label><input id="rady" type="range" min="0" max="360" value="35"/><output>35</output></label> <label><input id="radz" type="range" min="0" max="360" value="0"/><output>0</output></label><h2>Zoom</h2><label><input id="zoom" type="range" min="1" max="100" value="10"/><output>10</output></label><h2>Light Rotation</h2><label><input id="lightx" type="range" min="0" max="360" value="36"/><output>36</output></label> <label><input id="lighty" type="range" min="0" max="360" value="72"/><output>72</output></label> <label><input id="lightz" type="range" min="0" max="360" value="0"/><output>0</output></label></form><script>const gfx = (function() {
 	const canvas = document.querySelector('canvas');
 	const gl = canvas.getContext('webgl');
 
@@ -226,7 +226,7 @@
 		this.normals = [];
 		this.points = [];
 
-		const n = 50;
+		const n = 55;
 		let i = 0;
 		for (let α=0; α<=180; α+=180/n) {
 			let j = 0;
@@ -273,13 +273,27 @@
 			shapes.push(...shape)
 		},
 
-		draw() {
+		draw(now) {
 			const bufferData = [];
 			shapes.forEach((shape) => {
 				bufferData.push(shape.render());
 			});
 			WebGL.drawScene(bufferData);
 			requestAnimationFrame(gfx.draw);
+			now /= 10;
+			now %= 360;
+			moon.translate(
+				...matrix.flatten(
+					matrix.multiply(
+						matrix.axonometric(0, -36, 0),
+						matrix.form2dCol([
+							450 * Math.cos(now * Math.PI / 180),
+							450 * Math.sin(now * Math.PI / 180),
+							0,
+						]),
+					),
+				),
+			);
 		},
 	};
 })();
@@ -308,6 +322,14 @@ document.getElementById('lighty').addEventListener('input', rotateLight);
 document.getElementById('lightz').addEventListener('input', rotateLight);
 rotateLight();
 
+function zoom() {
+	WebGL.zoom(
+		Number.parseInt(document.getElementById('zoom').value, 10),
+	);
+}
+document.getElementById('zoom').addEventListener('input', zoom);
+zoom();
+
 function showNumbers(e) {
 	e.target.closest('label').querySelector('output').innerText = e.target.value;
 }
@@ -328,6 +350,25 @@ const colors = [
 	[a0 / ff, a0 / ff, ff / ff, 1], // blue
 ];
 
+const earth = new gfx.Sphere(150, colors[3]);
+gfx.addShapes(earth);
+
+const moon = new gfx.Sphere(100, colors[5]);
+gfx.addShapes(moon);
+moon.translate(450, 0, 0);
+
+const moonOrbit = new Array(2).fill(0).map((f, i) => new gfx.Ring(
+	450 + (-1) ** (i % 2) * 0.01,
+	5,
+	colors[0],
+	!i,
+));
+gfx.addShapes(...moonOrbit);
+moonOrbit.forEach((c, i) => {
+	c.rotate(0, 36, 0);
+});
+
+/*
 const cube = new Array(6).fill(0).map((f, i) => new gfx.Square(
 	-100,
 	-100,
@@ -363,7 +404,9 @@ cone.forEach((c, i) => {
 	c.translate(0, 0, (-1) ** (i % 2) * 10);
 });
 gfx.addShapes(...cone);
+/**/
 
+/*
 const halo = new Array(2).fill(0).map((z, i) => new gfx.Ring(250 + (-1) ** (i % 2) * 0.01, 10, [
 	Number.parseInt('2e', 16) / ff,
 	Number.parseInt('8b', 16) / ff,
@@ -371,6 +414,7 @@ const halo = new Array(2).fill(0).map((z, i) => new gfx.Ring(250 + (-1) ** (i % 
 	1.0,
 ], !i));
 gfx.addShapes(...halo);
+/**/
 
 /*
 const halo = new Array(2).fill(0).map(() => new gfx.Circle(250, 10, [
@@ -416,18 +460,10 @@ gfx.addShapes(...halo);
 });
 /**/
 
-/***********************************************************************************/
-// All code below here is from MDN's WebGL Tutorial
-// https://github.com/mdn/webgl-examples/blob/gh-pages/tutorial/sample5/webgl-demo.js
-
-//
-// Start here
-//
 (() => {
 	const canvas = document.querySelector('canvas');
 
 	// If we don't have a GL context, give up now
-
 	if (!canvas.getContext('webgl')) {
 		console.error('Unable to initialize WebGL. Your browser or machine may not support it.');
 		return;
