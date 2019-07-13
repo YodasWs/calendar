@@ -77,18 +77,6 @@ const gfx = (function() {
 							matrix.form2dCol(this.normals[i] || [0, 0, 1]),
 						));
 					}
-					/*
-					this.renderedNormals.push(
-						matrix.multiply(
-							this.rotation,
-							[
-								[Math.sign(point[0])],
-								[Math.sign(point[1])],
-								[1],
-							],
-						),
-					);
-					/**/
 					this.renderedPoints.push(
 						matrix.multiply(
 								matrix.add(
@@ -98,7 +86,7 @@ const gfx = (function() {
 								),
 								matrix.form2dCol(this.translation),
 							),
-							1 / canvas.width,
+							1 / canvas.width / 2,
 						),
 					);
 				});
@@ -323,8 +311,8 @@ const gfx = (function() {
 						// matrix.axonometric(0, -36, 0),
 						matrix.identity(3),
 						matrix.form2dCol([
-							radii.scale * radii.moonOrbit / radii.earth * Math.cos(now * Math.PI / 180),
-							radii.scale * radii.moonOrbit / radii.earth * Math.sin(now * Math.PI / 180),
+							moonDistance * Math.cos(now * Math.PI / 180),
+							moonDistance * Math.sin(now * Math.PI / 180),
 							0,
 						]),
 					),
@@ -388,22 +376,24 @@ const colors = [
 ];
 
 const radii = {
-	scale: 100,
+	scale: 150,
+	moonScale: 5,
 	moonOrbit: 385 * 1000,
 	earth: 6371,
 	moon: 1731.1,
 };
+const moonDistance = radii.scale * radii.moonScale * 1.5;
 
 const earth = new gfx.Sphere(radii.scale, colors[3]);
 gfx.addShapes(earth);
 
-const moon = new gfx.Sphere(radii.scale * radii.moon / radii.earth, colors[5]);
+const moon = new gfx.Sphere(radii.scale * radii.moonScale / 8, colors[5]);
 gfx.addShapes(moon);
-moon.translate(radii.scale * radii.moonOrbit / radii.earth, 0, 0);
+moon.translate(moonDistance, 0, 0);
 
-const moonOrbit = new Array(2).fill(0).map((f, i) => new gfx.Ring(
-	radii.scale * radii.moonOrbit / radii.earth + (-1) ** (i % 2) * 0.01,
-	5,
+const moonOrbit = new Array(2).fill(0).map((f, i) => new gfx[i < 2 ? 'Ring' : 'Circle'](
+	moonDistance + (-1) ** (i % 2) * 0.01,
+	radii.scale / 10,
 	colors[0],
 	!i,
 ));
