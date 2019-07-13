@@ -11,16 +11,26 @@
 <h1>3D Graphics!</h1>
 <canvas width="640" height="480"></canvas>
 <form>
-	<h2>Camera Rotation</h2>
-	<label><input id="radx" type="range" min="0" max="360" value="45"/><output>45</output></label>
-	<label><input id="rady" type="range" min="0" max="360" value="35"/><output>35</output></label>
-	<label><input id="radz" type="range" min="0" max="360" value="0"/><output>0</output></label>
-	<h2>Zoom</h2>
-	<label><input id="zoom" type="range" min="1" max="100" value="10"/><output>10</output></label>
-	<h2>Light Rotation</h2>
-	<label><input id="lightx" type="range" min="0" max="360" value="36"/><output>36</output></label>
-	<label><input id="lighty" type="range" min="0" max="360" value="72"/><output>72</output></label>
-	<label><input id="lightz" type="range" min="0" max="360" value="0"/><output>0</output></label>
+	<section>
+		<h2>Speed</h2>
+		<label><input id="speed" type="range" min="0" max="50" value="10"/><output>10</output></label>
+	</section>
+	<section>
+		<h2>Camera Rotation</h2>
+		<label><input id="radx" type="range" min="0" max="360" value="45"/><output>45</output></label>
+		<label><input id="rady" type="range" min="0" max="360" value="35"/><output>35</output></label>
+		<label><input id="radz" type="range" min="0" max="360" value="0"/><output>0</output></label>
+	</section>
+	<section>
+		<h2>Zoom</h2>
+		<label><input id="zoom" type="range" min="1" max="100" value="10"/><output>10</output></label>
+	</section>
+	<section>
+		<h2>Light Rotation</h2>
+		<label><input id="lightx" type="range" min="0" max="360" value="36"/><output>36</output></label>
+		<label><input id="lighty" type="range" min="0" max="360" value="72"/><output>72</output></label>
+		<label><input id="lightz" type="range" min="0" max="360" value="0"/><output>0</output></label>
+	</section>
 </form>
 <script>
 
@@ -51,7 +61,7 @@ const gfx = (function() {
 				this.renderedPoints = [];
 				this.pointColors = [];
 
-				const normal = matrix.multiply(
+				const stdNormal = matrix.multiply(
 					this.rotation,
 					matrix.form2dCol([0, 0, 1]),
 				);
@@ -60,7 +70,7 @@ const gfx = (function() {
 				this.points.forEach((point, i) => {
 					this.pointColors.push(this.color);
 					if (this.normals.length === 0) {
-						this.renderedNormals.push(normal);
+						this.renderedNormals.push(stdNormal);
 					} else {
 						this.renderedNormals.push(matrix.multiply(
 							this.rotation,
@@ -305,8 +315,7 @@ const gfx = (function() {
 				bufferData.push(shape.render());
 			});
 			WebGL.drawScene(bufferData);
-			requestAnimationFrame(gfx.draw);
-			now /= 10;
+			now *= Number.parseInt(document.getElementById('speed').value, 10) / 100;
 			now %= 360;
 			moon.translate(
 				...matrix.flatten(
@@ -320,6 +329,7 @@ const gfx = (function() {
 					),
 				),
 			);
+			requestAnimationFrame(gfx.draw);
 		},
 	};
 })();

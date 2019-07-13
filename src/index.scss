@@ -18,22 +18,34 @@ canvas {
 
 form {
 	display: flex;
+	flex-flow: row wrap;
+
+	> section {
+		width: 50%;
+	}
+}
+
+section {
+	display: flex;
 	flex-flow: column nowrap;
 	align-content: center;
 	align-items: center;
 
 	> label {
 		display: block;
+		width: 100%;
+		white-space: nowrap;
+		text-align: right;
 	}
 }
 
 input[type="range"] {
-	width: 50vw;
+	width: calc(90% - 2em);
 }
 
 output {
 	display: inline-block;
 	vertical-align: top;
 	text-align: right;
-	min-width: 3em;
+	min-width: 2em;
 }
