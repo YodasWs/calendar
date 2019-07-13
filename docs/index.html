@@ -1,4 +1,4 @@
-<!doctype html><html lang="en-US"><head><meta charset="utf-8"/><title>3D Graphics!</title><link rel="stylesheet" href="index.css"/><script src="matrix.js"></script><script src="webgl.js"></script></head><body><h1>3D Graphics!</h1><canvas width="640" height="480"></canvas><form><h2>Camera Rotation</h2><label><input id="radx" type="range" min="0" max="360" value="45"/><output>45</output></label> <label><input id="rady" type="range" min="0" max="360" value="35"/><output>35</output></label> <label><input id="radz" type="range" min="0" max="360" value="0"/><output>0</output></label><h2>Zoom</h2><label><input id="zoom" type="range" min="1" max="100" value="10"/><output>10</output></label><h2>Light Rotation</h2><label><input id="lightx" type="range" min="0" max="360" value="36"/><output>36</output></label> <label><input id="lighty" type="range" min="0" max="360" value="72"/><output>72</output></label> <label><input id="lightz" type="range" min="0" max="360" value="0"/><output>0</output></label></form><script>const gfx = (function() {
+<!doctype html><html lang="en-US"><head><meta charset="utf-8"/><title>3D Graphics!</title><link rel="stylesheet" href="index.css"/><script src="matrix.js"></script><script src="webgl.js"></script></head><body><h1>3D Graphics!</h1><canvas width="640" height="480"></canvas><form><section><h2>Speed</h2><label><input id="speed" type="range" min="0" max="50" value="10"/><output>10</output></label></section><section><h2>Camera Rotation</h2><label><input id="radx" type="range" min="0" max="360" value="45"/><output>45</output></label> <label><input id="rady" type="range" min="0" max="360" value="35"/><output>35</output></label> <label><input id="radz" type="range" min="0" max="360" value="0"/><output>0</output></label></section><section><h2>Zoom</h2><label><input id="zoom" type="range" min="1" max="100" value="10"/><output>10</output></label></section><section><h2>Light Rotation</h2><label><input id="lightx" type="range" min="0" max="360" value="36"/><output>36</output></label> <label><input id="lighty" type="range" min="0" max="360" value="72"/><output>72</output></label> <label><input id="lightz" type="range" min="0" max="360" value="0"/><output>0</output></label></section></form><script>const gfx = (function() {
 	const canvas = document.querySelector('canvas');
 	const gl = canvas.getContext('webgl');
 
@@ -25,7 +25,7 @@
 				this.renderedPoints = [];
 				this.pointColors = [];
 
-				const normal = matrix.multiply(
+				const stdNormal = matrix.multiply(
 					this.rotation,
 					matrix.form2dCol([0, 0, 1]),
 				);
@@ -34,7 +34,7 @@
 				this.points.forEach((point, i) => {
 					this.pointColors.push(this.color);
 					if (this.normals.length === 0) {
-						this.renderedNormals.push(normal);
+						this.renderedNormals.push(stdNormal);
 					} else {
 						this.renderedNormals.push(matrix.multiply(
 							this.rotation,
@@ -62,7 +62,7 @@
 								),
 								matrix.form2dCol(this.translation),
 							),
-							1 / 640,
+							1 / canvas.width,
 						),
 					);
 				});
@@ -279,21 +279,22 @@
 				bufferData.push(shape.render());
 			});
 			WebGL.drawScene(bufferData);
-			requestAnimationFrame(gfx.draw);
-			now /= 10;
+			now *= Number.parseInt(document.getElementById('speed').value, 10) / 100;
 			now %= 360;
 			moon.translate(
 				...matrix.flatten(
 					matrix.multiply(
-						matrix.axonometric(0, -36, 0),
+						// matrix.axonometric(0, -36, 0),
+						matrix.identity(3),
 						matrix.form2dCol([
-							450 * Math.cos(now * Math.PI / 180),
-							450 * Math.sin(now * Math.PI / 180),
+							radii.scale * radii.moonOrbit / radii.earth * Math.cos(now * Math.PI / 180),
+							radii.scale * radii.moonOrbit / radii.earth * Math.sin(now * Math.PI / 180),
 							0,
 						]),
 					),
 				),
 			);
+			requestAnimationFrame(gfx.draw);
 		},
 	};
 })();
@@ -350,22 +351,29 @@ const colors = [
 	[a0 / ff, a0 / ff, ff / ff, 1], // blue
 ];
 
-const earth = new gfx.Sphere(150, colors[3]);
+const radii = {
+	scale: 100,
+	moonOrbit: 385 * 1000,
+	earth: 6371,
+	moon: 1731.1,
+};
+
+const earth = new gfx.Sphere(radii.scale, colors[3]);
 gfx.addShapes(earth);
 
-const moon = new gfx.Sphere(100, colors[5]);
+const moon = new gfx.Sphere(radii.scale * radii.moon / radii.earth, colors[5]);
 gfx.addShapes(moon);
-moon.translate(450, 0, 0);
+moon.translate(radii.scale * radii.moonOrbit / radii.earth, 0, 0);
 
 const moonOrbit = new Array(2).fill(0).map((f, i) => new gfx.Ring(
-	450 + (-1) ** (i % 2) * 0.01,
+	radii.scale * radii.moonOrbit / radii.earth + (-1) ** (i % 2) * 0.01,
 	5,
 	colors[0],
 	!i,
 ));
 gfx.addShapes(...moonOrbit);
 moonOrbit.forEach((c, i) => {
-	c.rotate(0, 36, 0);
+	// c.rotate(0, 36, 0);
 });
 
 /*
