@@ -25,6 +25,7 @@ const plugins = require('gulp-load-plugins')({
 		'gulp-babel': 'compileJS',
 	},
 });
+plugins['connect.reload'] = plugins.connect.reload;
 
 const options = {
 	compileHTML:{
@@ -69,7 +70,7 @@ const options = {
 		delay: 0,
 	},
 
-	webserver: {
+	connect: {
 		path: `/${packageJson.name}/`,
 		directoryListing: false,
 		defaultFile: 'index.html',
@@ -78,6 +79,7 @@ const options = {
 		port: argv.port,
 	},
 };
+options.connect.root = options.dest;
 
 function runTasks(task) {
 	const fileType = task.fileType || 'static';
@@ -105,6 +107,7 @@ function runTasks(task) {
 		],
 		tasks: [
 			'compileSass',
+			'connect.reload',
 		],
 		fileType: 'css',
 	},
@@ -115,6 +118,7 @@ function runTasks(task) {
 		],
 		tasks: [
 			'compileJS',
+			'connect.reload',
 		],
 		fileType: 'js',
 	},
@@ -126,6 +130,7 @@ function runTasks(task) {
 		],
 		tasks: [
 			'compileHTML',
+			'connect.reload',
 		],
 		fileType: 'html',
 	},
@@ -152,8 +157,7 @@ gulp.task('watch', () => {
 });
 
 gulp.task('serve', () => {
-	return gulp.src(options.dest)
-		.pipe(plugins.webserver(options.webserver));
+	return plugins.connect.server(options.connect);
 });
 
 gulp.task('default', gulp.parallel('watch', 'serve'));
