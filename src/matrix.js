@@ -2,6 +2,7 @@ const Matrix = (function() {
 	const form2dCol = v => v.map(p => [p]);
 	const form2dRow = v => [v];
 	const x = 0, y = 1, z = 2;
+	const EPSILON = 0.000001;
 
 	function Matrix(camera = [0, 0, 1]) {
 		this.camera = camera;
@@ -199,8 +200,78 @@ const Matrix = (function() {
 				],
 			];
 		},
+
+		// Move and point camera, from glMatrix, https://github.com/toji/gl-matrix/blob/master/src/mat4.js
+		lookAt(eye, center, up) {
+			let x0, x1, x2, y0, y1, y2, z0, z1, z2, len;
+			const eyex = eye[x];
+			const eyey = eye[y];
+			const eyez = eye[z];
+			const centerx = center[x];
+			const centery = center[y];
+			const centerz = center[z];
+
+			if (Math.abs(eyex - centerx) < EPSILON &&
+				Math.abs(eyey - centery) < EPSILON &&
+				Math.abs(eyez - centerz) < EPSILON) {
+				return basicOperations.identity(4);
+			}
+
+			z0 = eyex - centerx;
+			z1 = eyey - centery;
+			z2 = eyez - centerz;
+			len = Math.hypot(z0, z1, z2);
+			z0 /= len;
+			z1 /= len;
+			z2 /= len;
+
+			const upx = up[x];
+			const upy = up[y];
+			const upz = up[z];
+
+			x0 = upy * z2 - upz * z1;
+			x1 = upz * z0 - upx * z2;
+			x2 = upx * z1 - upy * z0;
+			len = Math.hypot(x0, x1, x2);
+			if (!len) {
+				x0 = 0;
+				x1 = 0;
+				x2 = 0;
+			} else {
+				x0 /= len;
+				x1 /= len;
+				x2 /= len;
+			}
+
+			y0 = z1 * x2 - z2 * x1;
+			y1 = z2 * x0 - z0 * x2;
+			y2 = z0 * x1 - z1 * x0;
+
+			len = Math.hypot(y0, y1, y2);
+			if (!len) {
+				y0 = 0;
+				y1 = 0;
+				y2 = 0;
+			} else {
+				y0 /= len;
+				y1 /= len;
+				y2 /= len;
+			}
+
+			return [
+				[x0, y0, z0, 0],
+				[x1, y1, z1, 0],
+				[x2, y2, z2, 0],
+				[
+					-(x0 * eyex + x1 * eyey + x2 * eyez),
+					-(y0 * eyex + y1 * eyey + y2 * eyez),
+					-(z0 * eyex + z1 * eyey + z2 * eyez),
+					1,
+				],
+			];
+		},
 	};
 
 	return Matrix;
 })();
-const matrix = new Matrix();
+window.matrix = new Matrix();
