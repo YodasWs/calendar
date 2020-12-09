@@ -520,7 +520,7 @@ gulp.task('transfer:fonts', () => gulp.src([
 );
 
 gulp.task('transfer:res', () => gulp.src([
-	'./lib/yodasws.js',
+	'./lib/*.js',
 ])
 	.pipe(gulp.dest(path.join(options.dest, 'res'))),
 );

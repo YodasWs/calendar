@@ -1,10 +1,6 @@
 {
 	"name": "calendar",
 	"components": [],
-	"js": [
-		"matrix",
-		"webgl"
-	],
 	"sections": [],
 	"pages": []
 }
