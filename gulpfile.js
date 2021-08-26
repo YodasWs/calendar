@@ -51,7 +51,7 @@ const argv = require('yargs')
 	.command('transfer-files', 'Transfer all static assets and resources to docs folder')
 	.command('watch', 'Watch files for changes to recompile')
 	.help('?')
-	.epilog(' ©2017–2019 Samuel B Grundman')
+	.epilog(' ©2017–2021 Samuel B Grundman')
 	.argv;
 
 const gulp = require('gulp');
@@ -133,7 +133,7 @@ const options = {
 	lintES: {
 		parserOptions: {
 			sourceType: 'module',
-			ecmaVersion: 7,
+			ecmaVersion: 2021,
 		},
 		env: {
 			browser: true,
@@ -236,7 +236,7 @@ const options = {
 'property-sort-order': 0,
 'pseudo-element': 1,
 'quotes': [
-	1, { style: 'single' }
+	1, { style: 'double' }
 ],
 'shorthand-values': 1,
 'url-quotes': 1,
@@ -379,7 +379,7 @@ function runTasks(task) {
 
 	// Output Linting Results
 	[
-		'lintSass',
+		// 'lintSass',
 		'lintES'
 	].forEach((task) => {
 		if (tasks.includes(task)) {
@@ -414,14 +414,13 @@ function runTasks(task) {
 			'!**/min.css'
 		],
 		tasks: [
-			'lintSass',
+			// 'lintSass',
 			'sort',
 			'concat',
 			'compileSass',
 			'stripCssComments',
 			'rmLines',
 			'prefixCSS',
-			'connect.reload',
 		],
 		fileType: 'css',
 	},
@@ -457,7 +456,6 @@ function runTasks(task) {
 		tasks: [
 			'compileJS',
 			'rmLines',
-			'connect.reload',
 		],
 		fileType: 'js',
 	},
@@ -470,7 +468,6 @@ function runTasks(task) {
 		tasks: [
 			'ssi',
 			'compileHTML',
-			'connect.reload',
 		],
 		fileType: 'html',
 	},
@@ -478,7 +475,6 @@ function runTasks(task) {
 		name: 'transfer:assets',
 		src: [
 			'./src/**/*.jp{,e}g',
-			// './src/**/*.json',
 			'./src/**/*.gif',
 			'./src/**/*.png',
 			'./src/**/*.ttf',
@@ -491,7 +487,8 @@ function runTasks(task) {
 	});
 });
 
-gulp.task('lint:sass', () => {
+gulp.task('lint:sass', (done) => {
+	done(); return;
 	return gulp.src([
 		'src/**/*.{sa,sc,c}ss',
 		'!**/*.min.css',
@@ -520,7 +517,7 @@ gulp.task('transfer:fonts', () => gulp.src([
 );
 
 gulp.task('transfer:res', () => gulp.src([
-	'./lib/*.js',
+	'./lib/yodasws.js',
 ])
 	.pipe(gulp.dest(path.join(options.dest, 'res'))),
 );
@@ -542,20 +539,24 @@ gulp.task('compile:js', gulp.series(
 ));
 
 gulp.task('compile', gulp.parallel('compile:html', 'compile:js', 'compile:sass', 'transfer-files'));
+gulp.task('reload', (done) => {
+	gulp.src('docs/').pipe(plugins['connect.reload']());
+	done();
+});
 
 gulp.task('watch', (done) => {
 	gulp.watch('./src/**/*.{sa,sc,c}ss', {
 		usePolling: true,
-	}, gulp.series('compile:sass'));
-	gulp.watch('./lib/yodasws.js', {
+	}, gulp.series('compile:sass', 'reload'));
+	gulp.watch('./lib/*.js', {
 		usePolling: true,
-	}, gulp.series('transfer:res'));
+	}, gulp.series('transfer:res', 'reload'));
 	gulp.watch('./src/**/*.{js,json}', {
 		usePolling: true,
-	}, gulp.series('compile:js'));
+	}, gulp.series('compile:js', 'reload'));
 	gulp.watch('./src/**/*.html', {
 		usePolling: true,
-	}, gulp.series('compile:html'));
+	}, gulp.series('compile:html', 'reload'));
 	done();
 });
 
@@ -584,6 +585,7 @@ gulp.task('generate:page', gulp.series(
 		},
 		() => {
 			const str = `yodasws.page('${argv.module}').setRoute({
+	title: '${argv.name}',
 	template: 'pages/${argv.sectionCC}${argv.nameCC}/${argv.nameCC}.html',
 	canonicalRoute: '/${argv.sectionCC}${argv.nameCC}/',
 	route: '/${argv.sectionCC}${argv.nameCC}/?',
@@ -605,9 +607,6 @@ gulp.task('generate:page', gulp.series(
 		`git status`,
 	]),
 ));
-
-gulp.task('init:win', () => {
-});
 
 gulp.task('init', gulp.series(
 	plugins.cli([
@@ -635,7 +634,7 @@ gulp.task('init', gulp.series(
 </head>
 <body>
 <!--#include file="includes/header/header.html" -->
-<main></main>
+<main aria-live="polite"></main>
 <div id="y-spinner">
 	<div class="spinner"></div>
 	<div class="spinner-center"></div>
@@ -752,6 +751,16 @@ body > nav:not([hidden]) {\n\tdisplay: flex;\n\tflex-flow: row wrap;\n\tjustify-
 			}
 			const str = `<h2>Home</h2>\n`;
 			return plugins.newFile(`home.html`, str, { src: true })
+				.pipe(gulp.dest(`./src/pages`));
+		},
+
+		(done) => {
+			if (fileExists.sync('src/pages/home.scss')) {
+				done();
+				return;
+			}
+			const str = `[y-page='home'] {\n\t/* SCSS Goes Here */\n}\n`;
+			return plugins.newFile(`home.scss`, str, { src: true })
 				.pipe(gulp.dest(`./src/pages`));
 		},
 
